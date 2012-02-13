@@ -7,10 +7,7 @@
     <script src="/js/jquery.tmpl.js"></script>
     <script src="/js/jquery.validate.js"></script>
     <script src="/js/options.js"></script>
-  </head>
-  <body>
-    <script src="/js/analytics.js"></script>
-    <style>
+    <style type="text/css">
       #options { min-width: 200px; max-width: 600px; margin: auto; margin-top: 2em;  }
       h1, h2 { padding: .5em; margin: 0; position: relative; }
       #newSite { padding: .6em; margin: 0; }
@@ -20,9 +17,38 @@
       }
       #sites-list { margin: 0; list-style: none; padding-left: 0; }
       #sites-list label { padding: 0.5em; width: 100%;  }
-      #sites-list li:nth-child(odd) { background-color: #eee };
+      #sites-list li:nth-child(odd) { background-color: #eee }
+      #privacy { padding: 0 1em 1em 1em; font-size: 12px; }
     </style>
+  </head>
+  <body>
+    <script src="/js/analytics.js"></script>
     <div id="options">
+
+        <h1 class="ui-widget-header ui-corner-top">
+            Privacy
+        </h1>
+        <div id="privacy" class="ui-widget ui-widget-content ui-corner-bottom">
+            <p>This extension submits the text and title of the news articles you read to the Churnalism servers. This is limited to the set of websites listed below. We do this because it is required by the underlying technology. Any identifying information is discarded.</p>
+
+			<p>While the text and title of the article must be submitted in order to provide you search results, we would also like to submit the URL of the page. This allows us to determine how accurately our extension extracts the article text and reduces our server load by relying on caching techniques that speed up the rest of the web. This is also limited to the websites listed below and we do not associate any identifying information with the URL, so we cannot track your browsing history.</p>
+
+            <input type="checkbox" id="submit-urls" /> Submit URLs of news articles?
+        </div>
+
+        <br />
+        <br />
+
+        <h1 class="ui-widget-header ui-corner-top">
+            Search Server
+        </h1>
+        <div class="ui-widget ui-widget-content ui-corner-bottom">
+            Search Server: <input type="text" id="search-server" class="ui-corner-all" />
+        </div>
+
+        <br />
+        <br />
+
       <h1 class="ui-widget-header ui-corner-top">
         Sites Whitelist
       </h1>

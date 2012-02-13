@@ -1,4 +1,5 @@
-console.log("Starting Content Script");
+var parameters = null;
+var results = null;
 
 var PREFIX_LENGTH = 3;
 var SUFFIX_LENGTH = 3;
@@ -84,23 +85,73 @@ var highlight_match = function (p, match) {
     }
 };
 
-// readability.flags=0;
-//var doc = $('body').clone().get(0);
-$(document).find('p').each(function(idx, p){
-    var text = $(p).text();
-    if (text.length <= 60) {
-        console.log("Skipping paragraph because it is too short: " + text.length);
-        return;
+var handleMessage = function (request, sender, response) {
+    console.log('DEBUG', 'content_script.js', 'handleMessage', request);
+
+    if (request.method == 'log') {
+        console.log(request.message);
+
+    } else if (request.method == 'injectIFrame') {
+        $("#churnalism-overlay").remove();
+
+        var overlay = $('<div id="churnalism-overlay"><button id="churnalism-close">Close</button></div>');
+        var overlay_frame = document.createElement("iframe");
+        $(overlay_frame).attr('id', 'churnalism-iframe');
+        $(overlay_frame).attr('src', request.url);
+
+        overlay.append(overlay_frame);
+        $("body").append(overlay);
+        $("#churnalism-close").click(function(click){
+            $("#churnalism-overlay").remove();
+        });
+
+    } else {
+        console.log('content_script.js', 'handleMessage', request, sender, response);
     }
+};
+chrome.extension.onRequest.addListener(handleMessage);
 
-    var req = {
-        "method": "paragraphExtracted", 
-        "text": text
-    };
-    chrome.extension.sendRequest(req, function(matches){
-        for (var idx in matches) {
-            highlight_match(p, matches[idx]);
-        }
+var renderText = function (el) {
+    var inline_tags = ['a', 'abbr', 'acronym', 'b', 'basefont', 'bdo', 'big',
+    'br', 'cite', 'code', 'dfn', 'em', 'font', 'i', 'img', 'input', 'kbd',
+    'label', 'q', 's', 'samp', 'select', 'small', 'span', 'strike', 'strong',
+    'sub', 'sup', 'textarea', 'tt', 'u', 'var', 'applet', 'button', 'del',
+    'iframe', 'ins', 'map', 'object', 'script' ];
+    var ignored_tags = ['script', 'style'];
+    var rope = [];
+
+    var tag = el.tagName.toLowerCase();
+    if (ignored_tags.indexOf(tag) >= 0)
+        return '';
+
+    if (inline_tags.indexOf(tag) == -1) 
+        rope.push('\n');
+
+    var eltext = $(tag).text();
+    if (eltext.trim() != '')
+        rope.push(eltext);
+
+    $(el).children().each(function(idx, ch){
+        rope.push(renderText(ch));
     });
-});
 
+    if ((tag == 'br') || (inline_tags.indexOf(tag) == -1))
+        rope.push('\n');
+
+    return rope.join("\n");
+};
+
+// Copy the document because the readability script modifies the DOM
+var doc = window.document.documentElement.cloneNode(true);
+$(doc).find('script').remove();
+$(doc).find('style').remove();
+readability.flags = 0;
+var content = readability.grabArticle(doc);
+var title = readability.getArticleTitle();
+var req = {
+    'method': 'articleExtracted',
+    'url': window.location.href,
+    'text': $(content).text().trim(),
+    'title': $(title).text().trim()
+};
+chrome.extension.sendRequest(req);

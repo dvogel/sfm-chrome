@@ -1,16 +1,36 @@
-var results={};
-var defaultOptions={sites:[{url:"http://www.reuters.com"},
-                           {url:"http://hosted.ap.org/"},
-                           {url:"http://www.nytimes.com"},
-                           {url:"http://www.washingtonpost.com"},
-                           {url:"http://www.ft.com"},
-                           {url:"http://www.bbc.co.uk/news"},
-                           {url:"http://www.guardian.co.uk"},
-                           {url:"http://www.dailymail.co.uk"},
-                           {url:"http://www.telegraph.co.uk"},
-                           {url:"http://www.prnewswire.com/"},
-                           {url:"http://www.pcmag.com/"}
-                          ]};
+var results = {};
+var titles = {};
+var text = {};
+var defaultOptions = {
+    sites: [
+        { url: "http://www.reuters.com" 
+        },
+        { url: "http://hosted.ap.org/" 
+        },
+        { url: "http://www.nytimes.com" 
+        },
+        { url: "http://www.washingtonpost.com" 
+        },
+        { url: "http://www.ft.com" 
+        },
+        { url: "http://www.bbc.co.uk/news" 
+        },
+        { url: "http://www.guardian.co.uk" 
+        },
+        { url: "http://www.dailymail.co.uk" 
+        },
+        { url: "http://www.telegraph.co.uk" 
+        },
+        { url: "http://www.prnewswire.com/" 
+        },
+        { url: "http://www.pcmag.com/" 
+        },
+        { url: "http://localhost/"
+        }
+    ],
+    search_server: 'http://127.0.0.1:7000/api',
+    submit_urls: false
+};
 
 RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
@@ -43,17 +63,38 @@ function getRegex(){
   return new RegExp(regex);
 }
 
-function checkForValidUrl(tabId, changeInfo, tab) {
-  if (changeInfo.status =="loading"){
-    var sites=getRegex()
-    if (sites.test(tab.url)) {
-      chrome.pageAction.show(tabId);
-      chrome.pageAction.setPopup({tabId:tabId,popup:""});
-      chrome.tabs.executeScript(null,{file: "/js/jquery.js"});
-//      chrome.tabs.executeScript(null,{file: "/js/readability.js"});
-      chrome.tabs.executeScript(null,{file: "/js/content_script.js"});
+var executeScriptsSynchronously = function (tab, files, callback) {
+    if (files.length > 0) {
+        var file = files[0];
+        var rest = files.slice(1);
+        chrome.tabs.executeScript(tab.id, {file: file}, function(){
+            if (rest.length > 0) {
+                executeScriptsSynchronously(tab, rest, callback);
+            } else if (callback) {
+                callback.call(null);
+            }
+        });
     }
-  }
+};
+
+function checkForValidUrl(tabId, changeInfo, tab) {
+    if (changeInfo.status == 'loading') {
+        text[tabId] = null;
+        results[tabId] = null;
+
+        var sites = getRegex();
+        if (sites.test(tab.url)) {
+            chrome.pageAction.show(tabId);
+            chrome.pageAction.setPopup({tabId:tabId,popup:""});
+
+            chrome.tabs.insertCSS(tab.id, {file: "/css/churnalism.css"});
+            executeScriptsSynchronously(tab.id, [
+                "/js/jquery-1.7.1.min.js",
+                "/js/readability.js",
+                "/js/content_script.js"
+            ]);
+        }
+    }
 };
 
 var reduce_fragments = function (results) {
@@ -123,42 +164,69 @@ var reduce_fragments = function (results) {
     return newbounds;
 };
 
-function handleMessage(request,sender,response){
-  if (request.method=="articleExtracted"){
-    console.log("Searching for content at: " + sender.tab.url);
-    console.log(request.text);
-    $.post("http://us.churnalism.com/search/",{text:request.text},function(data){
-      console.log("Results received");
-      results[sender.tab.id]=data;
-      chrome.pageAction.setIcon({tabId:sender.tab.id,path:"/img/found.png"});
-      chrome.pageAction.setPopup({tabId:sender.tab.id,popup:"/html/popup.html"});
-      response({});
-    });
-  }else if(request.method == "paragraphExtracted") {
-      var text = request.text;
-      $.ajax({
-          "type": "POST",
-          "crossDomain": true,
-          "url": "http://us.churnalism.com/search/", 
-          "data": { "text": text },
-          "success": function(results){ 
-              chrome.pageAction.setIcon({tabId:sender.tab.id,path:"/img/found.png"});
-              chrome.pageAction.setPopup({tabId:sender.tab.id,popup:"/html/popup.html"});
-              var fragments = reduce_fragments(results);
-              var matches = fragments.map(function(f){ 
-                    return text.slice(f[0], f[1]);
-              });
-              response(matches);
-          }
-      });
-  }else if(request.method=="getOptions"){
-    response(restoreOptions());
-  }else if(request.method=="saveOptions"){
-    response(saveOptions(request.options));
-  }else if(request.method=="resetOptions"){
-    response(resetOptions());
-  }
+var requestIFrameInjection = function (tab) {
+    var result = results[tab.id];
+    if (result == null)
+        return;
+
+    var hit_count = result['documents']['rows'].length;
+    if (hit_count == 0)
+        return;
+
+    var req = {
+        'method': 'injectIFrame',
+        'url': chrome.extension.getURL('html/iframe.html') 
+    };
+    chrome.tabs.sendRequest(tab.id, req);
+};
+
+var handleMessage = function (request, sender, response) {
+    if (request.method == "articleExtracted") {
+        var options = restoreOptions();
+
+        var query_params = {
+            'title': request.title,
+            'text': request.text,
+            'url': (options.submit_urls == true) ? request.url : null
+        };
+        text[sender.tab.id] = request.text;
+        titles[sender.tab.id] = request.title;
+        var url = options.search_server + '/api/search/';
+        $.ajax({
+            "type": "POST",
+            "crossDomain": true,
+            "cache": false,
+            "url": url,
+            "data": query_params,
+            "success": function(result){ 
+                if (result['documents']['rows'].length > 0) {
+                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                }
+                results[sender.tab.id] = result;
+                response(result);
+            }
+        });
+
+    } else if (request.method == 'whoami?') {
+        response(sender.tab);
+
+    } else if (request.method == "getSearchResults") {
+        response(results[sender.tab.id]);
+
+    } else if (request.method == "getOptions") {
+        response(restoreOptions());
+
+    } else if (request.method == "saveOptions") {
+        response(saveOptions(request.options));
+
+    } else if (request.method == "resetOptions") {
+        response(resetOptions());
+
+    } else if (request.method == "log") {
+        console.log(request.args);
+    }
 }
 
 chrome.tabs.onUpdated.addListener(checkForValidUrl);
+chrome.pageAction.onClicked.addListener(requestIFrameInjection);
 chrome.extension.onRequest.addListener(handleMessage);
