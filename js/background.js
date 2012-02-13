@@ -3,64 +3,65 @@ var titles = {};
 var text = {};
 var defaultOptions = {
     sites: [
-        { url: "http://www.reuters.com" 
+        { url: "www.reuters.com" 
         },
-        { url: "http://hosted.ap.org/" 
+        { url: "hosted.ap.org" 
         },
-        { url: "http://www.nytimes.com" 
+        { url: ".nytimes.com" 
         },
-        { url: "http://www.washingtonpost.com" 
+        { url: "www.washingtonpost.com" 
         },
-        { url: "http://www.ft.com" 
+        { url: "www.ft.com" 
         },
-        { url: "http://www.bbc.co.uk/news" 
+        { url: "www.bbc.co.uk/news" 
         },
-        { url: "http://www.guardian.co.uk" 
+        { url: "www.guardian.co.uk" 
         },
-        { url: "http://www.dailymail.co.uk" 
+        { url: "www.dailymail.co.uk" 
         },
-        { url: "http://www.telegraph.co.uk" 
+        { url: "www.telegraph.co.uk" 
         },
-        { url: "http://www.prnewswire.com/" 
+        { url: "www.prnewswire.com" 
         },
-        { url: "http://www.pcmag.com/" 
+        { url: "www.pcmag.com" 
         },
-        { url: "http://localhost/"
+        { url: "localhost"
         }
     ],
-    search_server: 'http://127.0.0.1:7000/api',
+    search_server: 'http://127.0.0.1:7000',
     submit_urls: false
 };
+
+function saveOptions(options){
+    localStorage.setItem("options",JSON.stringify(options));
+    return options;
+}
+
+function restoreOptions(){
+    var options=JSON.parse(localStorage.getItem("options"));
+    return (options==null)?resetOptions():options;
+}
+
+function resetOptions(){
+    localStorage.setItem("options",JSON.stringify(defaultOptions));
+    return defaultOptions;
+}
 
 RegExp.escape = function(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 }
 
-function saveOptions(options){
-  localStorage.setItem("options",JSON.stringify(options));
-  return options;
-}
-
-function restoreOptions(){
-  var options=JSON.parse(localStorage.getItem("options"));
-  return (options==null)?resetOptions():options;
-}
-
-function resetOptions(){
-  localStorage.setItem("options",JSON.stringify(defaultOptions));
-  return defaultOptions;
-}
-
-function getRegex(){
-  var regex="";
-  var sites=restoreOptions().sites;
-  $.each(sites,function(index,value){
-    regex+="^"+RegExp.escape(value.url);
-    if (index!=sites.length-1){
-      regex+="|";
-    }
-  })
-  return new RegExp(regex);
+function getRegex () {
+    var sites = restoreOptions().sites;
+    var pattern = "^http[s]?://(__)".replace("__", sites.map(function(site){
+        if (site.url.substr(0, 1) == '.') {
+            return '.*' + RegExp.escape(site.url);
+        } else {
+            return RegExp.escape(site.url);
+        }
+    }).join("|"));
+    console.log('URL pattern', pattern);
+    return new RegExp(pattern);
 }
 
 var executeScriptsSynchronously = function (tab, files, callback) {
