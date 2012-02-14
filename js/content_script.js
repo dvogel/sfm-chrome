@@ -86,8 +86,6 @@ var highlight_match = function (p, match) {
 };
 
 var handleMessage = function (request, sender, response) {
-    console.log('DEBUG', 'content_script.js', 'handleMessage', request);
-
     if (request.method == 'log') {
         console.log(request.message);
 
@@ -97,13 +95,17 @@ var handleMessage = function (request, sender, response) {
         var overlay = $('<div id="churnalism-overlay"><button id="churnalism-close">Close</button></div>');
         var overlay_frame = document.createElement("iframe");
         $(overlay_frame).attr('id', 'churnalism-iframe');
-        $(overlay_frame).attr('src', request.url);
 
         overlay.append(overlay_frame);
         $("body").append(overlay);
         $("#churnalism-close").click(function(click){
             $("#churnalism-overlay").remove();
         });
+
+        var doc = overlay_frame.contentDocument || overlay_frame.contentWindow.document;
+        doc.open();
+        doc.writeln(request.content);
+        doc.close();
 
     } else {
         console.log('content_script.js', 'handleMessage', request, sender, response);
@@ -145,13 +147,16 @@ var renderText = function (el) {
 var doc = window.document.documentElement.cloneNode(true);
 $(doc).find('script').remove();
 $(doc).find('style').remove();
-readability.flags = 0;
-var content = readability.grabArticle(doc);
-var title = readability.getArticleTitle();
+readability.flags = readability.FLAG_WEIGHT_CLASSES;
+var title_markup = readability.getArticleTitle(doc);
+var article_markup = readability.grabArticle(doc);
+var title = readability.getInnerText(title_markup).trim();
+var article = readability.getInnerText(article_markup).replace(title, '').trim();
+article = article.replace(/\n/g, '\n\n');
 var req = {
     'method': 'articleExtracted',
     'url': window.location.href,
-    'text': $(content).text().trim(),
-    'title': $(title).text().trim()
+    'text': article,
+    'title': title
 };
 chrome.extension.sendRequest(req);

@@ -24,8 +24,6 @@ var defaultOptions = {
         { url: "www.prnewswire.com" 
         },
         { url: "www.pcmag.com" 
-        },
-        { url: "localhost"
         }
     ],
     search_server: 'http://127.0.0.1:7000',
@@ -52,15 +50,15 @@ RegExp.escape = function(text) {
 }
 
 function getRegex () {
+    // FIXME: parse the URL to avoid mattching things like 'www.nytimes.nyud.net'
     var sites = restoreOptions().sites;
     var pattern = "^http[s]?://(__)".replace("__", sites.map(function(site){
         if (site.url.substr(0, 1) == '.') {
-            return '.*' + RegExp.escape(site.url);
+            return '[^/]+' + RegExp.escape(site.url);
         } else {
             return RegExp.escape(site.url);
         }
     }).join("|"));
-    console.log('URL pattern', pattern);
     return new RegExp(pattern);
 }
 
@@ -174,11 +172,33 @@ var requestIFrameInjection = function (tab) {
     if (hit_count == 0)
         return;
 
-    var req = {
-        'method': 'injectIFrame',
-        'url': chrome.extension.getURL('html/iframe.html') 
+    var options = restoreOptions();
+    var url = options.search_server + '/sidebyside/chrome/search/';
+    var query_params = {
+        'text': text[tab.id],
+        'title': titles[tab.id]
     };
-    chrome.tabs.sendRequest(tab.id, req);
+    $.ajax({
+        "type": "POST",
+        "crossDomain": false,
+        "cache": true,
+        "url": url,
+        "data": query_params,
+        "success": function(iframe_content){
+            var req = {
+                'method': 'injectIFrame',
+                'content': iframe_content
+            };
+            chrome.tabs.sendRequest(tab.id, req);
+        },
+        "error": function(xhr, text_status, error_thrown) {
+            var req = {
+                'method': 'injectIFrame',
+                'content': xhr.response
+            };
+            chrome.tabs.sendRequest(tab.id, req);
+        }
+    });
 };
 
 var handleMessage = function (request, sender, response) {
@@ -195,8 +215,8 @@ var handleMessage = function (request, sender, response) {
         var url = options.search_server + '/api/search/';
         $.ajax({
             "type": "POST",
-            "crossDomain": true,
-            "cache": false,
+            "crossDomain": false,
+            "cache": true,
             "url": url,
             "data": query_params,
             "success": function(result){ 
@@ -210,9 +230,6 @@ var handleMessage = function (request, sender, response) {
 
     } else if (request.method == 'whoami?') {
         response(sender.tab);
-
-    } else if (request.method == "getSearchResults") {
-        response(results[sender.tab.id]);
 
     } else if (request.method == "getOptions") {
         response(restoreOptions());
