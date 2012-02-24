@@ -1,4 +1,5 @@
 #churnalism-overlay {
+	z-index: 9999999;
 	border: 1px solid blue;
 	background: none gray;
 	position: fixed;
