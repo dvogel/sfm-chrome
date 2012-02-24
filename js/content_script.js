@@ -113,46 +113,10 @@ var handleMessage = function (request, sender, response) {
 };
 chrome.extension.onRequest.addListener(handleMessage);
 
-var renderText = function (el) {
-    var inline_tags = ['a', 'abbr', 'acronym', 'b', 'basefont', 'bdo', 'big',
-    'br', 'cite', 'code', 'dfn', 'em', 'font', 'i', 'img', 'input', 'kbd',
-    'label', 'q', 's', 'samp', 'select', 'small', 'span', 'strike', 'strong',
-    'sub', 'sup', 'textarea', 'tt', 'u', 'var', 'applet', 'button', 'del',
-    'iframe', 'ins', 'map', 'object', 'script' ];
-    var ignored_tags = ['script', 'style'];
-    var rope = [];
-
-    var tag = el.tagName.toLowerCase();
-    if (ignored_tags.indexOf(tag) >= 0)
-        return '';
-
-    if (inline_tags.indexOf(tag) == -1) 
-        rope.push('\n');
-
-    var eltext = $(tag).text();
-    if (eltext.trim() != '')
-        rope.push(eltext);
-
-    $(el).children().each(function(idx, ch){
-        rope.push(renderText(ch));
-    });
-
-    if ((tag == 'br') || (inline_tags.indexOf(tag) == -1))
-        rope.push('\n');
-
-    return rope.join("\n");
-};
-
-// Copy the document because the readability script modifies the DOM
-var doc = window.document.documentElement.cloneNode(true);
-$(doc).find('script').remove();
-$(doc).find('style').remove();
-readability.flags = readability.FLAG_WEIGHT_CLASSES;
-var title_markup = readability.getArticleTitle(doc);
-var article_markup = readability.grabArticle(doc);
-var title = readability.getInnerText(title_markup).trim();
-var article = readability.getInnerText(article_markup).replace(title, '').trim();
-article = article.replace(/\n/g, '\n\n');
+ArticleExtractor(window);
+var article_document = new ExtractedDocument(document);
+var article = article_document.get_article_text();
+var title = article_document.get_title();
 var req = {
     'method': 'articleExtracted',
     'url': window.location.href,

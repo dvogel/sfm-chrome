@@ -24,6 +24,28 @@ var defaultOptions = {
         { url: "www.prnewswire.com" 
         },
         { url: "www.pcmag.com" 
+        },
+        { url: "online.wsj.com"
+        },
+        { url: "www.usatoday.com"
+        },
+        { url: "www.latimes.com"
+        },
+        { url: "www.mercurynews.com"
+        },
+        { url: "www.washingtonpost.com"
+        },
+        { url: "www.nypost.com"
+        },
+        { url: "www.nydailynews.com"
+        },
+        { url: "www.denverpost.com"
+        },
+        { url: "www.freep.com"
+        },
+        { url: "www.jsonline.com"
+        },
+        { url: "www.chicagotribune.com"
         }
     ],
     search_server: 'http://127.0.0.1:7000',
@@ -89,7 +111,7 @@ function checkForValidUrl(tabId, changeInfo, tab) {
             chrome.tabs.insertCSS(tab.id, {file: "/css/churnalism.css"});
             executeScriptsSynchronously(tab.id, [
                 "/js/jquery-1.7.1.min.js",
-                "/js/readability.js",
+                "/js/extractor.js",
                 "/js/content_script.js"
             ]);
         }
@@ -106,7 +128,6 @@ var reduce_fragments = function (results) {
             bounds.push([frag[0], frag[0] + frag[2]]);
         }
     };
-
 
     var compare_bounds = function (a, b) {
         if (a[0] == b[0]) {
@@ -164,6 +185,7 @@ var reduce_fragments = function (results) {
 };
 
 var requestIFrameInjection = function (tab) {
+/*
     var result = results[tab.id];
     if (result == null)
         return;
@@ -171,13 +193,17 @@ var requestIFrameInjection = function (tab) {
     var hit_count = result['documents']['rows'].length;
     if (hit_count == 0)
         return;
-
+*/
     var options = restoreOptions();
     var url = options.search_server + '/sidebyside/chrome/search/';
     var query_params = {
-        'text': text[tab.id],
         'title': titles[tab.id]
     };
+    if (options.submit_urls) {
+        query_params['url'] = tab.url;
+    } else {
+        query_params['text'] = text[tab.id];
+    }
     $.ajax({
         "type": "POST",
         "crossDomain": false,
@@ -206,10 +232,13 @@ var handleMessage = function (request, sender, response) {
         var options = restoreOptions();
 
         var query_params = {
-            'title': request.title,
-            'text': request.text,
-            'url': (options.submit_urls == true) ? request.url : null
+            'title': request.title
         };
+        if (options.submit_urls) {
+            query_params['url'] = request.url;
+        } else {
+            query_params['text'] = request.text;
+        }
         text[sender.tab.id] = request.text;
         titles[sender.tab.id] = request.title;
         var url = options.search_server + '/api/search/';
