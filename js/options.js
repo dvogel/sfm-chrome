@@ -1,6 +1,7 @@
 $(function() {
     function renderList (options) {
-        $('#sites-list').empty().append($("#site-list-item").tmpl(options.sites));
+        var item_contexts = options.sites.map(function(site){ return {'url': site}; });
+        $('#sites-list').empty().append($("#site-list-item").tmpl(item_contexts));
     }
 
     function updateOptions(){
@@ -11,7 +12,7 @@ $(function() {
             sites: []
         };
         $('#sites-list li label').each(function(i,el){
-            options.sites.push({url:$(el).text()});
+            options.sites.push($(el).text());
         });
         chrome.extension.sendRequest({method:"saveOptions", options:options});
     }

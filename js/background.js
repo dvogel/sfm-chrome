@@ -11,76 +11,41 @@ var titles = {};
 var text = {};
 var defaultOptions = {
     sites: [
-        { url: "www.reuters.com" 
-        },
-        { url: "hosted.ap.org" 
-        },
-        { url: ".nytimes.com" 
-        },
-        { url: "www.washingtonpost.com" 
-        },
-        { url: "www.ft.com" 
-        },
-        { url: "www.bbc.co.uk/news/..." 
-        },
-        { url: "www.guardian.co.uk" 
-        },
-        { url: "www.dailymail.co.uk" 
-        },
-        { url: "www.telegraph.co.uk" 
-        },
-        { url: "www.prnewswire.com" 
-        },
-        { url: "www.pcmag.com" 
-        },
-        { url: "online.wsj.com"
-        },
-        { url: "www.usatoday.com"
-        },
-        { url: "www.latimes.com"
-        },
-        { url: "www.mercurynews.com"
-        },
-        { url: "www.washingtonpost.com"
-        },
-        { url: "www.nypost.com"
-        },
-        { url: "www.nydailynews.com"
-        },
-        { url: "www.denverpost.com"
-        },
-        { url: "www.freep.com"
-        },
-        { url: "www.jsonline.com"
-        },
-        { url: "www.chicagotribune.com"
-        },
-        { url: ".cnn.com"
-        },
-        { url: ".time.com"
-        },
-        { url: "www.miamiherald.com"
-        },
-        { url: "www.startribune.com"
-        },
-        { url: "www.newsday.com"
-        },
-        { url: "www.azcentral.com"
-        },
-        { url: "www.chron.com"
-        },
-        { url: "www.suntimes.com"
-        },
-        { url: "www.dallasnews.com"
-        },
-        { url: "www.mcclatchydc.com"
-        },
-        { url: "www.scientificamerican.com"
-        },
-        { url: "www.sciencemag.org"
-        },
-        { url: "www.newscientist.com"
-        }
+        "www.reuters.com",
+        "hosted.ap.org",
+        ".nytimes.com",
+        "www.washingtonpost.com",
+        "www.ft.com",
+        "www.bbc.co.uk/news/...",
+        "www.guardian.co.uk",
+        "www.dailymail.co.uk",
+        "www.telegraph.co.uk",
+        "www.prnewswire.com",
+        "www.pcmag.com",
+        "online.wsj.com",
+        "www.usatoday.com",
+        "www.latimes.com",
+        "www.mercurynews.com",
+        "www.washingtonpost.com",
+        "www.nypost.com",
+        "www.nydailynews.com",
+        "www.denverpost.com",
+        "www.freep.com",
+        "www.jsonline.com",
+        "www.chicagotribune.com",
+        ".cnn.com",
+        ".time.com",
+        "www.miamiherald.com",
+        "www.startribune.com",
+        "www.newsday.com",
+        "www.azcentral.com",
+        "www.chron.com",
+        "www.suntimes.com",
+        "www.dallasnews.com",
+        "www.mcclatchydc.com",
+        "www.scientificamerican.com",
+        "www.sciencemag.org",
+        "www.newscientist.com",
     ],
     use_generic_news_pattern: false,
     search_server: 'http://127.0.0.1:7000',
@@ -148,15 +113,15 @@ var compileWhitelist = function () {
         }
     };
 
-    var matchers = sites.map(function(site){
-        var slash_offset = site.url.indexOf('/');
+    var matchers = sites.map(function(site_pattern){
+        var slash_offset = site_pattern.indexOf('/');
         if (slash_offset == 0) {
-            return path_matcher(site.url);
+            return path_matcher(site_pattern);
         } else if (slash_offset == -1) {
-            return host_matcher(site.url);
+            return host_matcher(site_pattern);
         } else {
-            var hostpart = site.url.slice(0, slash_offset);
-            var pathpart = site.url.slice(slash_offset);
+            var hostpart = site_pattern.slice(0, slash_offset);
+            var pathpart = site_pattern.slice(slash_offset);
             return function (location) {
                 return host_matcher(hostpart)(location) && path_matcher(pathpart)(location);
             };
