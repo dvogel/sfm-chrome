@@ -1,3 +1,11 @@
+// parseUri 1.2.2
+// (c) Steven Levithan <stevenlevithan.com>
+// MIT License
+function parseUri(d){for(var a=parseUri.options,d=a.parser[a.strictMode?"strict":"loose"].exec(d),c={},b=14;b--;)c[a.key[b]]=d[b]||"";c[a.q.name]={};c[a.key[12]].replace(a.q.parser,function(d,b,e){b&&(c[a.q.name][b]=e)});return c}
+parseUri.options={strictMode:!1,key:"source,protocol,authority,userInfo,user,password,host,port,relative,path,directory,file,query,anchor".split(","),q:{name:"queryKey",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:{strict:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,loose:/^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/}};
+// End parseUri
+
+
 var results = {};
 var titles = {};
 var text = {};
@@ -46,6 +54,32 @@ var defaultOptions = {
         { url: "www.jsonline.com"
         },
         { url: "www.chicagotribune.com"
+        },
+        { url: ".cnn.com"
+        },
+        { url: ".time.com"
+        },
+        { url: "www.miamiherald.com"
+        },
+        { url: "www.startribune.com"
+        },
+        { url: "www.newsday.com"
+        },
+        { url: "www.azcentral.com"
+        },
+        { url: "www.chron.com"
+        },
+        { url: "www.suntimes.com"
+        },
+        { url: "www.dallasnews.com"
+        },
+        { url: "www.mcclatchydc.com"
+        },
+        { url: "www.scientificamerican.com"
+        },
+        { url: "www.sciencemag.org"
+        },
+        { url: "www.newscientist.com"
         }
     ],
     search_server: 'http://127.0.0.1:7000',
@@ -54,6 +88,7 @@ var defaultOptions = {
 
 function saveOptions(options){
     localStorage.setItem("options",JSON.stringify(options));
+    whitelist = compileWhitelist(options.sites);
     return options;
 }
 
@@ -67,22 +102,74 @@ function resetOptions(){
     return defaultOptions;
 }
 
-RegExp.escape = function(text) {
-    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+var onWhitelist = function (location) {
+    // This function is replaced by compileWhitelist
+    return false;
+};
 
-function getRegex () {
-    // FIXME: parse the URL to avoid mattching things like 'www.nytimes.nyud.net'
+var compileWhitelist = function () {
     var sites = restoreOptions().sites;
-    var pattern = "^http[s]?://(__)".replace("__", sites.map(function(site){
-        if (site.url.substr(0, 1) == '.') {
-            return '[^/]+' + RegExp.escape(site.url);
+
+    var host_matcher = function (s) {
+        if (s[0] == '.') {
+            return function (location) {
+                return (location.host.slice(-s.length) == s);
+            };
         } else {
-            return RegExp.escape(site.url);
+            return function (location) {
+                return (location.host == s);
+            };
         }
-    }).join("|"));
-    return new RegExp(pattern);
-}
+    };
+
+    var path_matcher = function (s) {
+        var wild_prefix = (s.slice(0, 3) == '...');
+        var wild_suffix = (s.slice(-3) == '...');
+        if (wild_prefix && wild_suffix) {
+            return function (location) {
+                return (location.pathname.indexOf(s) >= 0);
+            };
+        } else if (wild_prefix) {
+            return function (location) {
+                return (location.pathname.slice(-s.length) == s);
+            };
+        } else if (wild_suffix) {
+            return function (location) {
+                return (location.pathname.slice(0, s.length) == s);
+            };
+        } else {
+            return function (location) {
+                return (location.pathname == s);
+            };
+        }
+    };
+
+    var matchers = sites.map(function(site){
+        var slash_offset = site.url.indexOf('/');
+        if (slash_offset == 0) {
+            return path_matcher(site.url);
+        } else if (slash_offset == -1) {
+            return host_matcher(site.url);
+        } else {
+            var hostpart = site.url.slice(0, slash_offset);
+            var pathpart = site.url.slice(slash_offset - 1);
+            return function (location) {
+                return host_matcher(hostpart)(location) && path_matcher(pathpart)(location);
+            };
+        };
+    });
+
+    // Replaces onWhitelist in outer scope.
+    onWhitelist = function (location) {
+        for (var idx = 0; idx < matchers.length; idx++) {
+            var matcher = matchers[idx];
+            if (matcher(location)) {
+                return true;
+            }
+        }
+        return false;
+    };
+};
 
 var executeScriptsSynchronously = function (tab, files, callback) {
     if (files.length > 0) {
@@ -98,90 +185,22 @@ var executeScriptsSynchronously = function (tab, files, callback) {
     }
 };
 
-function checkForValidUrl(tabId, changeInfo, tab) {
-    if (changeInfo.status == 'loading') {
-        text[tabId] = null;
-        results[tabId] = null;
+var checkForValidUrl = function (tab) {
+    text[tab.id] = null;
+    results[tab.id] = null;
 
-        var sites = getRegex();
-        if (sites.test(tab.url)) {
-            chrome.pageAction.show(tabId);
-            chrome.pageAction.setPopup({tabId:tabId,popup:""});
+    var loc = parseUri(tab.url);
+    if (onWhitelist({'host': loc.host, 'pathname': loc.path})) {
+        chrome.pageAction.show(tab.id);
+        chrome.pageAction.setPopup({tabId:tab.id,popup:""});
 
-            chrome.tabs.insertCSS(tab.id, {file: "/css/churnalism.css"});
-            executeScriptsSynchronously(tab.id, [
-                "/js/jquery-1.7.1.min.js",
-                "/js/extractor.js",
-                "/js/content_script.js"
-            ]);
-        }
+        chrome.tabs.insertCSS(tab.id, {file: "/css/churnalism.css"});
+        executeScriptsSynchronously(tab, [
+            "/js/jquery-1.7.1.min.js",
+            "/js/extractor.js",
+            "/js/content_script.js"
+        ]);
     }
-};
-
-var reduce_fragments = function (results) {
-    var bounds = [];
-    var rows = results.documents.rows;
-    for (var row_idx in rows) {
-        var row = rows[row_idx];
-        for (var frag_idx in row.fragments) {
-            var frag = row.fragments[frag_idx];
-            bounds.push([frag[0], frag[0] + frag[2]]);
-        }
-    };
-
-    var compare_bounds = function (a, b) {
-        if (a[0] == b[0]) {
-            return b[1] - a[1];
-        } else {
-            return a[0] - b[0];
-        }
-    };
-    bounds.sort(compare_bounds);
-
-    var subsumes = function (a, b) {
-        return ((a[0] <= b[0]) && (b[1] <= a[1]));
-    };
-
-    var overlaps = function (a, b) {
-        if ((a[0] <= b[0]) && (b[0] <= a[1])) {
-            return true;
-        } else if ((b[0] <= a[0]) && (a[0] <= b[1])) {
-            return true;
-        } else {
-            return false;
-        }
-    };
-
-    var idx = 0;
-    var newbounds = [];
-    while (bounds.length > 0) {
-        var a = bounds.shift();
-
-        if (bounds.length == 0) {
-            newbounds.push([a[0], a[1]]);
-        } else {
-            while (bounds.length > 0) {
-                var b = bounds.shift();
-                if (subsumes(a, b)) {
-                    /* Ignore b */
-                } else if (subsumes(b, a)) {
-                    /* Copy b to a */
-                    a[0] = b[0];
-                    a[1] = b[1];
-                } else if (overlaps(a, b)) {
-                    /* Merge a and b */
-                    a[0] = Math.min(a[0], b[0]);
-                    a[1] = Math.max(a[1], b[1]);
-                } else {
-                    /* Put b back on the stack. It will be the next a. */
-                    bounds.unshift(b);
-                    break;
-                }
-            }
-            newbounds.push([a[0], a[1]]);
-        }
-    }
-    return newbounds;
 };
 
 var requestIFrameInjection = function (tab) {
@@ -227,7 +246,14 @@ var requestIFrameInjection = function (tab) {
     });
 };
 
+var handleTabUpdate = function (tabId, changeInfo, tab) {
+    if (changeInfo.status == 'loading') {
+        checkForValidUrl(tab);
+    }
+};
+
 var handleMessage = function (request, sender, response) {
+    console.log(request.method, request, sender);
     if (request.method == "articleExtracted") {
         var options = restoreOptions();
 
@@ -251,6 +277,8 @@ var handleMessage = function (request, sender, response) {
             "success": function(result){ 
                 if (result['documents']['rows'].length > 0) {
                     chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                } else {
+                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
                 }
                 results[sender.tab.id] = result;
                 response(result);
@@ -274,6 +302,9 @@ var handleMessage = function (request, sender, response) {
     }
 }
 
-chrome.tabs.onUpdated.addListener(checkForValidUrl);
+var options = restoreOptions();
+compileWhitelist(options.sites);
+
+chrome.tabs.onUpdated.addListener(handleTabUpdate);
 chrome.pageAction.onClicked.addListener(requestIFrameInjection);
 chrome.extension.onRequest.addListener(handleMessage);
