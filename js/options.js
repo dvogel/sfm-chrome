@@ -7,6 +7,7 @@ $(function() {
         var options = {
             search_server: searchServer(),
             submit_urls: submitUrls(),
+            use_generic_news_pattern: useGenericNewsPattern(),
             sites: []
         };
         $('#sites-list li label').each(function(i,el){
@@ -20,8 +21,19 @@ $(function() {
             renderList(options);
             submitUrls(options['submit_urls']);
             searchServer(options['search_server']);
+            useGenericNewsPattern(options['use_generic_news_pattern']);
         });
     };
+
+    function useGenericNewsPattern (val) {
+        if (val == null) {
+            return ($("input#use-generic-news-pattern")[0].checked == true);
+        } else if (val == true) {
+            $("input#use-generic-news-pattern")[0].checked = true;
+        } else {
+            $("input#use-generic-news-pattern")[0].checked = undefined;
+        }
+    }
 
     function submitUrls (val) {
         if (val == null) {

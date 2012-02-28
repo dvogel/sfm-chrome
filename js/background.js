@@ -21,7 +21,7 @@ var defaultOptions = {
         },
         { url: "www.ft.com" 
         },
-        { url: "www.bbc.co.uk/news" 
+        { url: "www.bbc.co.uk/news/..." 
         },
         { url: "www.guardian.co.uk" 
         },
@@ -82,13 +82,14 @@ var defaultOptions = {
         { url: "www.newscientist.com"
         }
     ],
+    use_generic_news_pattern: false,
     search_server: 'http://127.0.0.1:7000',
     submit_urls: false
 };
 
 function saveOptions(options){
     localStorage.setItem("options",JSON.stringify(options));
-    whitelist = compileWhitelist(options.sites);
+    compileWhitelist();
     return options;
 }
 
@@ -108,7 +109,8 @@ var onWhitelist = function (location) {
 };
 
 var compileWhitelist = function () {
-    var sites = restoreOptions().sites;
+    var options = restoreOptions();
+    var sites = options.sites;
 
     var host_matcher = function (s) {
         if (s[0] == '.') {
@@ -130,12 +132,14 @@ var compileWhitelist = function () {
                 return (location.pathname.indexOf(s) >= 0);
             };
         } else if (wild_prefix) {
+            var literal_suffix = s.slice(3);
             return function (location) {
-                return (location.pathname.slice(-s.length) == s);
+                return (location.pathname.slice(-literal_suffix.length) == literal_suffix);
             };
         } else if (wild_suffix) {
+            var literal_prefix = s.slice(0, -3);
             return function (location) {
-                return (location.pathname.slice(0, s.length) == s);
+                return (location.pathname.slice(0, literal_prefix.length) == literal_prefix);
             };
         } else {
             return function (location) {
@@ -152,12 +156,18 @@ var compileWhitelist = function () {
             return host_matcher(site.url);
         } else {
             var hostpart = site.url.slice(0, slash_offset);
-            var pathpart = site.url.slice(slash_offset - 1);
+            var pathpart = site.url.slice(slash_offset);
             return function (location) {
                 return host_matcher(hostpart)(location) && path_matcher(pathpart)(location);
             };
         };
     });
+
+    if (options.use_generic_news_pattern == true) {
+        matchers.push(function(loc){
+            return /(news|article)/.test(loc.host + loc.pathname);
+        });
+    }
 
     // Replaces onWhitelist in outer scope.
     onWhitelist = function (location) {
@@ -303,7 +313,7 @@ var handleMessage = function (request, sender, response) {
 }
 
 var options = restoreOptions();
-compileWhitelist(options.sites);
+compileWhitelist();
 
 chrome.tabs.onUpdated.addListener(handleTabUpdate);
 chrome.pageAction.onClicked.addListener(requestIFrameInjection);

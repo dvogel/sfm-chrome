@@ -18,7 +18,8 @@
       #sites-list { margin: 0; list-style: none; padding-left: 0; }
       #sites-list label { padding: 0.5em; width: 100%;  }
       #sites-list li:nth-child(odd) { background-color: #eee }
-      #privacy { padding: 0 1em 1em 1em; font-size: 12px; }
+	  .ui-widget-content { padding: 0 1em 1em 1em; }
+	  .ui-widget-content p { font-size: 12px; }
     </style>
   </head>
   <body>
@@ -34,6 +35,17 @@
 			<p>While the text and title of the article must be submitted in order to provide you search results, we would also like to submit the URL of the page. This allows us to determine how accurately our extension extracts the article text and reduces our server load by relying on caching techniques that speed up the rest of the web. This is also limited to the websites listed below and we do not associate any identifying information with the URL, so we cannot track your browsing history.</p>
 
             <input type="checkbox" id="submit-urls" /> Submit URLs of news articles?
+        </div>
+
+        <br />
+        <br />
+
+        <h1 class="ui-widget-header ui-corner-top">
+       		Check all News Articles
+        </h1>
+		<div class="ui-widget ui-widget-content ui-corner-bottom">
+			<p>Usually only the websites in the list below are searched for Churnalism. The extionsion can also search all pages with the word "news" or "article" in the web address. This is an imperfect test of whether a web page is a news article, so it may miss some news articles and it may consider some non-news pages to be news.</p>
+            <input type="checkbox" id="use-generic-news-pattern" class="ui-corner-all" /> Check for "news" and "article" in web address?
         </div>
 
         <br />
