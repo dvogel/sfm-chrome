@@ -86,7 +86,6 @@ var highlight_match = function (p, match) {
 };
 
 var handleMessage = function (request, sender, response) {
-    console.log(request);
     if (request.method == 'log') {
         console.log(request.message);
 
@@ -127,7 +126,7 @@ jQuery(document).ready(function(){
         var src = jQuery(iframe).attr('src');
         if (/wmode=opaque/i.test(src)) {
             src = src.replace(/wmode=opaque/i, 'wmode=transparent');
-        } else {
+        } else if (src != null) {
             src = src + ((src.indexOf('?') == -1) ? '?' : '&') + 'wmode=transparent';
         } 
         jQuery(iframe).attr('src', src);
@@ -144,6 +143,5 @@ jQuery(document).ready(function(){
         'title': title
     };
     chrome.extension.sendRequest(req);
-    console.log(req);
 });
 

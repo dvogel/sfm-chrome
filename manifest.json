@@ -13,6 +13,7 @@
              "48": "img/logo.png",
             "128": "img/logo.png" },
   "permissions": [
+    "webNavigation",
     "tabs", 
     "http://*/*",
     "https://*/*"

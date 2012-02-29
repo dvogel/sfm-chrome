@@ -5,10 +5,49 @@ function parseUri(d){for(var a=parseUri.options,d=a.parser[a.strictMode?"strict"
 parseUri.options={strictMode:!1,key:"source,protocol,authority,userInfo,user,password,host,port,relative,path,directory,file,query,anchor".split(","),q:{name:"queryKey",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:{strict:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,loose:/^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/}};
 // End parseUri
 
+Backbone.sync = function(method, model, options) {
+    /* Do nothing */
+};
 
-var results = {};
-var titles = {};
-var text = {};
+var TabState = Backbone.Model.extend({
+    defaults: function () {
+        return {
+            id: null,
+            url: null,
+            search_result: null,
+            article_text: null,
+            article_title: null
+        };
+    },
+
+    initialize: function (options) {
+        this.on('change:url', function(){
+            this.set({
+                'article_text': null,
+                'article_title': null,
+                'search_result': null
+            });
+            checkForValidUrl(this);
+        }, this);
+    }
+});
+
+var TabStates = Backbone.Collection.extend({
+    model: TabState,
+
+    get_or_create: function (id) {
+        var mdl = this.get(id);
+        if (mdl == null) {
+            return this.create({'id': id});
+        } else {
+            return mdl;
+        }
+    }
+});
+
+var Tabs = new TabStates();
+
+
 var defaultOptions = {
     sites: [
         "www.reuters.com",
@@ -146,13 +185,13 @@ var compileWhitelist = function () {
     };
 };
 
-var executeScriptsSynchronously = function (tab, files, callback) {
+var executeScriptsSynchronously = function (tab_id, files, callback) {
     if (files.length > 0) {
         var file = files[0];
         var rest = files.slice(1);
-        chrome.tabs.executeScript(tab.id, {file: file}, function(){
+        chrome.tabs.executeScript(tab_id, {file: file}, function(){
             if (rest.length > 0) {
-                executeScriptsSynchronously(tab, rest, callback);
+                executeScriptsSynchronously(tab_id, rest, callback);
             } else if (callback) {
                 callback.call(null);
             }
@@ -161,16 +200,13 @@ var executeScriptsSynchronously = function (tab, files, callback) {
 };
 
 var checkForValidUrl = function (tab) {
-    text[tab.id] = null;
-    results[tab.id] = null;
-
-    var loc = parseUri(tab.url);
+    var loc = parseUri(tab.get('url'));
     if (onWhitelist({'host': loc.host, 'pathname': loc.path})) {
-        chrome.pageAction.show(tab.id);
-        chrome.pageAction.setPopup({tabId:tab.id,popup:""});
+        chrome.pageAction.show(tab.get('id'));
+        chrome.pageAction.setPopup({'tabId': tab.get('id'), 'popup': ''});
 
-        chrome.tabs.insertCSS(tab.id, {file: "/css/churnalism.css"});
-        executeScriptsSynchronously(tab, [
+        chrome.tabs.insertCSS(tab.get('id'), {file: "/css/churnalism.css"});
+        executeScriptsSynchronously(tab.get('id'), [
             "/js/jquery-1.7.1.min.js",
             "/js/extractor.js",
             "/js/content_script.js"
@@ -178,7 +214,12 @@ var checkForValidUrl = function (tab) {
     }
 };
 
-var requestIFrameInjection = function (tab) {
+var requestIFrameInjection = function (chromeTab) {
+    var tab = Tabs.get(chromeTab.id);
+    if (tab == null) {
+        throw 'Unknown tab (' + chromeTab.id + ') -- the world is falling apart!';
+    }
+
 /*
     var result = results[tab.id];
     if (result == null)
@@ -191,12 +232,12 @@ var requestIFrameInjection = function (tab) {
     var options = restoreOptions();
     var url = options.search_server + '/sidebyside/chrome/search/';
     var query_params = {
-        'title': titles[tab.id]
+        'title': tab.get('article_title')
     };
     if (options.submit_urls) {
-        query_params['url'] = tab.url;
+        query_params['url'] = tab.get('url');
     } else {
-        query_params['text'] = text[tab.id];
+        query_params['text'] = tab.get('article_text');
     }
     $.ajax({
         "type": "POST",
@@ -209,28 +250,29 @@ var requestIFrameInjection = function (tab) {
                 'method': 'injectIFrame',
                 'content': iframe_content
             };
-            chrome.tabs.sendRequest(tab.id, req);
+            chrome.tabs.sendRequest(tab.get('id'), req);
         },
         "error": function(xhr, text_status, error_thrown) {
             var req = {
                 'method': 'injectIFrame',
                 'content': xhr.response
             };
-            chrome.tabs.sendRequest(tab.id, req);
+            chrome.tabs.sendRequest(tab.get('id'), req);
         }
     });
-};
-
-var handleTabUpdate = function (tabId, changeInfo, tab) {
-    if (changeInfo.status == 'loading') {
-        checkForValidUrl(tab);
-    }
 };
 
 var handleMessage = function (request, sender, response) {
     console.log(request.method, request, sender);
     if (request.method == "articleExtracted") {
+        if (request.text.length == 0) {
+            chrome.pageAction.hide(sender.tab.id);
+            return;
+        }
+
         var options = restoreOptions();
+
+        var tab = Tabs.get(sender.tab.id);
 
         var query_params = {
             'title': request.title
@@ -240,8 +282,11 @@ var handleMessage = function (request, sender, response) {
         } else {
             query_params['text'] = request.text;
         }
-        text[sender.tab.id] = request.text;
-        titles[sender.tab.id] = request.title;
+        tab.set({
+            'article_text': request.text,
+            'article_title': request.title
+        });
+
         var url = options.search_server + '/api/search/';
         $.ajax({
             "type": "POST",
@@ -255,7 +300,7 @@ var handleMessage = function (request, sender, response) {
                 } else {
                     chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
                 }
-                results[sender.tab.id] = result;
+                tab.set({'search_result': result});
                 response(result);
             }
         });
@@ -280,6 +325,27 @@ var handleMessage = function (request, sender, response) {
 var options = restoreOptions();
 compileWhitelist();
 
-chrome.tabs.onUpdated.addListener(handleTabUpdate);
+chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
+    Tabs.remove(tabId);
+});
+chrome.webNavigation.onCommitted.addListener(function(details){
+    if (details.frameId != 0)
+        return;
+
+    var tab = Tabs.get_or_create(details.tabId);
+    if (details.transitionType == 'reload') {
+        tab.set({'url': null});
+    }
+});
+chrome.webNavigation.onDOMContentLoaded.addListener(function(details){
+    if (details.frameId != 0)
+        return;
+
+    var tab = Tabs.get_or_create(details.tabId);
+    if (tab == null) {
+        throw 'No such tab found: ' + details.tabId;
+    }
+    tab.set({'url': details.url});
+});
 chrome.pageAction.onClicked.addListener(requestIFrameInjection);
 chrome.extension.onRequest.addListener(handleMessage);
