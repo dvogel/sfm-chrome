@@ -328,15 +328,26 @@ compileWhitelist();
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
     Tabs.remove(tabId);
 });
-chrome.webNavigation.onCommitted.addListener(function(details){
-    if (details.frameId != 0)
-        return;
+if (chrome.webNavigation.onCommitted == null) {
+    console.log('chrome.webNavigation.onCommitted is not supported by this browser, falling back to chrome.webNavigation.onBeforeNavigate');
+    chrome.webNavigation.onBeforeNavigate.addListener(function(details){
+        if (details.frameId != 0)
+            return;
 
-    var tab = Tabs.get_or_create(details.tabId);
-    if (details.transitionType == 'reload') {
+        var tab = Tabs.get_or_create(details.tabId);
         tab.set({'url': null});
-    }
-});
+    });
+} else {
+    chrome.webNavigation.onCommitted.addListener(function(details){
+        if (details.frameId != 0)
+            return;
+
+        var tab = Tabs.get_or_create(details.tabId);
+        if (details.transitionType == 'reload') {
+            tab.set({'url': null});
+        }
+    });
+}
 chrome.webNavigation.onDOMContentLoaded.addListener(function(details){
     if (details.frameId != 0)
         return;
