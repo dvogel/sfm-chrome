@@ -54,15 +54,6 @@ $(function() {
         }
     }
 
-    $("#newSite").validate({
-        rules: {
-            url: {
-                required: true,
-                url: true
-            }
-        }
-    });
-
     $("#newSite").submit(function(event){
         event.preventDefault();
         if ($("#newSite").valid()){
