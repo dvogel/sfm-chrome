@@ -328,14 +328,11 @@ compileWhitelist();
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
     Tabs.remove(tabId);
 });
-if (chrome.webNavigation.onCommitted == null) {
-    console.log('chrome.webNavigation.onCommitted is not supported by this browser, falling back to chrome.webNavigation.onBeforeNavigate');
-    chrome.webNavigation.onBeforeNavigate.addListener(function(details){
-        if (details.frameId != 0)
-            return;
-
-        var tab = Tabs.get_or_create(details.tabId);
-        tab.set({'url': null});
+if (chrome.webNavigation == null) {
+    console.log('chrome.webNavigation is not supported by this browser, falling back to chrome.tabs');
+    chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, chromeTab){
+        var tab = Tabs.get_or_create(tabId);
+        tab.set({'url': chromeTab.url});
     });
 } else {
     chrome.webNavigation.onCommitted.addListener(function(details){
@@ -347,16 +344,16 @@ if (chrome.webNavigation.onCommitted == null) {
             tab.set({'url': null});
         }
     });
-}
-chrome.webNavigation.onDOMContentLoaded.addListener(function(details){
-    if (details.frameId != 0)
-        return;
+    chrome.webNavigation.onDOMContentLoaded.addListener(function(details){
+        if (details.frameId != 0)
+            return;
 
-    var tab = Tabs.get_or_create(details.tabId);
-    if (tab == null) {
-        throw 'No such tab found: ' + details.tabId;
-    }
-    tab.set({'url': details.url});
-});
+        var tab = Tabs.get_or_create(details.tabId);
+        if (tab == null) {
+            throw 'No such tab found: ' + details.tabId;
+        }
+        tab.set({'url': details.url});
+    });
+}
 chrome.pageAction.onClicked.addListener(requestIFrameInjection);
 chrome.extension.onRequest.addListener(handleMessage);
