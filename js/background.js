@@ -241,7 +241,7 @@ var requestIFrameInjection = function (chromeTab) {
     }
     $.ajax({
         "type": "POST",
-        "crossDomain": false,
+        "crossDomain": true,
         "cache": true,
         "url": url,
         "data": query_params,
@@ -290,7 +290,7 @@ var handleMessage = function (request, sender, response) {
         var url = options.search_server + '/api/search/';
         $.ajax({
             "type": "POST",
-            "crossDomain": false,
+            "crossDomain": true,
             "cache": true,
             "url": url,
             "data": query_params,
