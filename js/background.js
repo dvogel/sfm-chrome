@@ -27,7 +27,6 @@ var TabState = Backbone.Model.extend({
                 'article_title': null,
                 'search_result': null
             });
-            checkForValidUrl(this);
         }, this);
     }
 });
@@ -274,36 +273,48 @@ var handleMessage = function (request, sender, response) {
 
         var tab = Tabs.get(sender.tab.id);
 
-        var query_params = {
-            'title': request.title
-        };
-        if (options.submit_urls) {
-            query_params['url'] = request.url;
-        } else {
-            query_params['text'] = request.text;
-        }
-        tab.set({
-            'article_text': request.text,
-            'article_title': request.title
-        });
-
-        var url = options.search_server + '/api/search/';
-        $.ajax({
-            "type": "POST",
-            "crossDomain": true,
-            "cache": true,
-            "url": url,
-            "data": query_params,
-            "success": function(result){ 
-                if (result['documents']['rows'].length > 0) {
-                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
-                } else {
-                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
-                }
-                tab.set({'search_result': result});
-                response(result);
+        var prior_result = tab.get('search_result');
+        if (prior_result == null) {
+            var query_params = {
+                'title': request.title
+            };
+            if (options.submit_urls) {
+                query_params['url'] = request.url;
+            } else {
+                query_params['text'] = request.text;
             }
-        });
+            tab.set({
+                'article_text': request.text,
+                'article_title': request.title
+            });
+
+            var url = options.search_server + '/api/search/';
+            $.ajax({
+                "type": "POST",
+                "crossDomain": true,
+                "cache": true,
+                "url": url,
+                "data": query_params,
+                "success": function(result){ 
+                    if (result['documents']['rows'].length > 0) {
+                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                    } else {
+                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
+                    }
+                    tab.set({'search_result': result});
+                    response(result);
+                }
+            });
+        } else {
+            // Older Chrome versions don't provide the webNavigation API so we have to rely on the
+            // tabs.onUpdated event to signal when to extract the article text. Unfortunately this leads
+            // to multiple article extractions and we don't want to make a network request for each.
+            if (prior_result['documents']['rows'].length > 0) {
+                chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+            } else {
+                chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
+            }
+        }
 
     } else if (request.method == 'whoami?') {
         response(sender.tab);
@@ -331,8 +342,11 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
 if (chrome.webNavigation == null) {
     console.log('chrome.webNavigation is not supported by this browser, falling back to chrome.tabs');
     chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, chromeTab){
-        var tab = Tabs.get_or_create(tabId);
-        tab.set({'url': chromeTab.url});
+        if (changeInfo.status == 'complete') {
+            var tab = Tabs.get_or_create(tabId);
+            tab.set({'url': chromeTab.url});
+            checkForValidUrl(tab);
+        }
     });
 } else {
     chrome.webNavigation.onCommitted.addListener(function(details){
@@ -353,6 +367,7 @@ if (chrome.webNavigation == null) {
             throw 'No such tab found: ' + details.tabId;
         }
         tab.set({'url': details.url});
+        checkForValidUrl(tab);
     });
 }
 chrome.pageAction.onClicked.addListener(requestIFrameInjection);
