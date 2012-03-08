@@ -5,6 +5,8 @@ function parseUri(d){for(var a=parseUri.options,d=a.parser[a.strictMode?"strict"
 parseUri.options={strictMode:!1,key:"source,protocol,authority,userInfo,user,password,host,port,relative,path,directory,file,query,anchor".split(","),q:{name:"queryKey",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:{strict:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,loose:/^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/}};
 // End parseUri
 
+var MINIMUM_COVERAGE = 0.0;
+
 Backbone.sync = function(method, model, options) {
     /* Do nothing */
 };
@@ -198,6 +200,28 @@ var executeScriptsSynchronously = function (tab_id, files, callback) {
     }
 };
 
+var highest_coverage = function (text, search_results) {
+    var rows = search_results['documents']['rows'];
+    var highest = 0;
+
+    jQuery.each(rows, function(idx, row){
+        var chars_matched = 0;
+        jQuery.each(row['fragments'], function(idx, fragment){
+            chars_matched += fragment[2];
+        });
+        var pct_of_match = chars_matched / row['characters'];
+        var pct_of_source = chars_matched / text.length;
+        if (pct_of_match > highest) {
+            highest = pct_of_match;
+        }
+        if (pct_of_source > highest) {
+            highest = pct_of_source;
+        }
+    });
+
+    return highest;
+};
+
 var checkForValidUrl = function (tab) {
     var loc = parseUri(tab.get('url'));
     if (onWhitelist({'host': loc.host, 'pathname': loc.path})) {
@@ -296,7 +320,9 @@ var handleMessage = function (request, sender, response) {
                 "url": url,
                 "data": query_params,
                 "success": function(result){ 
-                    if (result['documents']['rows'].length > 0) {
+                    var coverage = highest_coverage(request.text, result);
+                    console.log('Coverage:', coverage);
+                    if ((result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
                     } else {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
@@ -309,7 +335,8 @@ var handleMessage = function (request, sender, response) {
             // Older Chrome versions don't provide the webNavigation API so we have to rely on the
             // tabs.onUpdated event to signal when to extract the article text. Unfortunately this leads
             // to multiple article extractions and we don't want to make a network request for each.
-            if (prior_result['documents']['rows'].length > 0) {
+            var coverage = highest_coverage(tab.get('article_text'), prior_result);
+            if ((prior_result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
                 chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
             } else {
                 chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
