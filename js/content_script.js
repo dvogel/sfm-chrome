@@ -6,6 +6,13 @@ var SUFFIX_LENGTH = 3;
 var OPEN_TAG = '<i style="background: yellow none;">';
 var CLOSE_TAG = '</i>';
 
+var standardize_quotes = function (text, leftsnglquot, rightsnglquot, leftdblquot, rightdblquot) {
+    return text.replace(/[\u2018\u201B]/g, leftsnglquot)
+               .replace(/[\u0027\u2019\u201A']/g, rightsnglquot)
+               .replace(/[\u201C\u201F]/g, leftdblquot)
+               .replace(/[\u0022\u201D"]/g, rightdblquot);
+};
+
 var eat_chars = function (text, expected) {
     var chars_eaten = 0;
     var found = "";
@@ -135,6 +142,7 @@ jQuery(document).ready(function(){
     ArticleExtractor(window);
     var article_document = new ExtractedDocument(document);
     var article = article_document.get_article_text();
+    article = standardize_quotes(article, "'", "'", '"', '"');
     var title = article_document.get_title();
     var req = {
         'method': 'articleExtracted',

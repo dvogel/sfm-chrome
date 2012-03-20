@@ -255,13 +255,17 @@ var requestIFrameInjection = function (chromeTab) {
     var options = restoreOptions();
     var url = options.search_server + '/sidebyside/chrome/search/';
     var query_params = {
-        'title': tab.get('article_title')
+        'title': tab.get('article_title'),
+        'text': tab.get('article_text')
     };
+    var search_result = tab.get('search_result');
+    if (search_result['uuid'] != null) {
+        query_params['uuid'] = search_result['uuid'];
+    }
     if (options.submit_urls) {
         query_params['url'] = tab.get('url');
-    } else {
-        query_params['text'] = tab.get('article_text');
     }
+
     $.ajax({
         "type": "POST",
         "crossDomain": true,
@@ -300,12 +304,12 @@ var handleMessage = function (request, sender, response) {
         var prior_result = tab.get('search_result');
         if (prior_result == null) {
             var query_params = {
-                'title': request.title
+                'title': request.title,
+                'text': request.text
             };
             if (options.submit_urls) {
                 query_params['url'] = request.url;
             } else {
-                query_params['text'] = request.text;
             }
             tab.set({
                 'article_text': request.text,
