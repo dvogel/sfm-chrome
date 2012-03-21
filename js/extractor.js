@@ -1,3 +1,13 @@
+/* Sites that pose problems:
+ * 
+ * Photo caption is included in article text:
+ * http://www.latimes.com/health/la-sci-bird-flu-lethal-20120224,0,1494616.story
+ * http://hayandforage.com/corn/industry-news-drought-tolerant-corn-hybrids-unveiled
+ * http://www.acga.org/index.php?option=com_content&task=view&id=170&Itemid=42
+ * http://gk.ph.gameclub.com/news/news_view.asp?bserial=1&idx=100
+ *
+ *
+ */
 var textRenderer = function (node) {
     var walker = document.createTreeWalker(
         node, 
@@ -33,7 +43,12 @@ var textRenderer = function (node) {
 		}
     }
 
-	return rope.join(' ').replace(/^\s+$/m, '').replace(/[\r\n]{2,}/g, '\n').replace(/\n/g, '\n\n').replace(/([[{(]) (.+) ([)}\]])/g, '$1$2$3');
+	return rope.join(' ')
+               .replace(/^\s+$/m, '')                           // Kill empty lines
+               .replace(/[\r\n]{2,}/g, '\n')                    // Collapse 2+ line breaks into a single line break
+               .replace(/\n/g, '\n\n')                          // Re-expand line breaks to 2-breaks for readability
+               .replace(/ ([,;:]\s)/g, '$1')
+               .replace(/([[{(]) (.+) ([)}\]])/g, '$1$2$3');
 };
 
 ArticleExtractor = function (NS) {
@@ -422,7 +437,7 @@ ArticleExtractor = function (NS) {
         sanitize_article();
         extract_title();
         sanitize_title();
-    
+
         that.get_best_candidate = function () {
             return best_candidate;
         };
