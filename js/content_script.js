@@ -12,6 +12,7 @@ var handleMessage = function (request, sender, response) {
     } else if (request.method == 'injectIFrame') {
         var overlay = $("#churnalism-overlay");
         if (overlay.length == 0) {
+            var recall_url = 'http://10.13.36.149:7000/sidebyside/chrome/' + request['uuid'] + '/';
             var mask = $('<div id="churnalism-mask">\r\n</div>');
             var overlay_frame = $('<iframe id="churnalism-iframe"></iframe>');
             overlay = $('<div id="churnalism-overlay"><button id="churnalism-close">Close</button></div>');
@@ -20,15 +21,18 @@ var handleMessage = function (request, sender, response) {
             overlay_frame.appendTo(overlay);
             overlay.appendTo("body");
 
-            $("#churnalism-close").click(function(click){
-                $("#churnalism-mask").fadeOut(function(){ $("#churnalism-mask").remove(); });
-                $("#churnalism-overlay").fadeOut(function(){ $("#churnalism-overlay").remove(); });
-            });
-
             var doc = overlay_frame[0].contentDocument || overlay_frame[0].contentWindow.document;
             doc.open();
             doc.writeln(request.content);
             doc.close();
+
+            var close_overlay = function () {
+                $("#churnalism-mask").fadeOut(function(){ $("#churnalism-mask").remove(); });
+                $("#churnalism-overlay").fadeOut(function(){ $("#churnalism-overlay").remove(); });
+            };
+
+            $("#churnalism-close", doc).click(close_overlay);
+            $("#churnalism-mask").click(close_overlay);
 
             $("#churnalism-mask").scroll(prevent_scroll);
             $("#churnalism-mask").bind('mousewheel', prevent_scroll);

@@ -170,7 +170,7 @@ var compileWhitelist = function () {
 
     if (options.use_generic_news_pattern == true) {
         matchers.push(function(loc){
-            return /(news|article)/.test(loc.host + loc.pathname);
+            return /(news|article)/i.test(loc.host + loc.pathname);
         });
     }
 
@@ -253,25 +253,14 @@ var requestIFrameInjection = function (chromeTab) {
         return;
 */
     var options = restoreOptions();
-    var url = options.search_server + '/sidebyside/chrome/search/';
-    var query_params = {
-        'title': tab.get('article_title'),
-        'text': tab.get('article_text')
-    };
+    var url = options.search_server + '/sidebyside/chrome/__UUID__/';
     var search_result = tab.get('search_result');
-    if (search_result['uuid'] != null) {
-        query_params['uuid'] = search_result['uuid'];
-    }
-    if (options.submit_urls) {
-        query_params['url'] = tab.get('url');
-    }
 
     $.ajax({
-        "type": "POST",
+        "type": "GET",
         "crossDomain": true,
         "cache": true,
-        "url": url,
-        "data": query_params,
+        "url": url.replace('__UUID__', tab.get('search_result')['uuid']),
         "success": function(iframe_content){
             var req = {
                 'method': 'injectIFrame',
