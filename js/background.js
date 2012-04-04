@@ -243,38 +243,24 @@ var requestIFrameInjection = function (chromeTab) {
         throw 'Unknown tab (' + chromeTab.id + ') -- the world is falling apart!';
     }
 
-/*
-    var result = results[tab.id];
-    if (result == null)
-        return;
-
-    var hit_count = result['documents']['rows'].length;
-    if (hit_count == 0)
-        return;
-*/
     var options = restoreOptions();
     var url = options.search_server + '/sidebyside/chrome/__UUID__/';
     var search_result = tab.get('search_result');
+    if ((search_result == null) || (search_result['documents']['rows'].length == 0))
+        return;
 
     $.ajax({
         "type": "GET",
-        "crossDomain": true,
-        "cache": true,
-        "url": url.replace('__UUID__', tab.get('search_result')['uuid']),
-        "success": function(iframe_content){
-            var req = {
-                'method': 'injectIFrame',
-                'content': iframe_content
-            };
-            chrome.tabs.sendRequest(tab.get('id'), req);
-        },
-        "error": function(xhr, text_status, error_thrown) {
-            var req = {
-                'method': 'injectIFrame',
-                'content': xhr.response
-            };
-            chrome.tabs.sendRequest(tab.get('id'), req);
-        }
+        "url": url.replace('__UUID__', tab.get('search_result')['uuid'])
+    }).success(function(iframe_content){
+        var req = {
+            'method': 'injectIFrame',
+            'content': iframe_content
+        };
+        chrome.tabs.sendRequest(tab.get('id'), req);
+    }).error(function(xhr, text_status, error_thrown) {
+        chrome.pageAction.hide(tab.get('id'));
+        // TODO: Maybe this should open a pageAction page?
     });
 };
 
@@ -308,22 +294,22 @@ var handleMessage = function (request, sender, response) {
             var url = options.search_server + '/api/search/';
             $.ajax({
                 "type": "POST",
-                "crossDomain": true,
-                "cache": true,
                 "url": url,
-                "data": query_params,
-                "success": function(result){ 
-                    var coverage = highest_coverage(request.text, result);
-                    console.log('Coverage:', coverage);
-                    if ((result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
-                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
-                    } else {
-                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
-                    }
-                    tab.set({'search_result': result});
-                    response(result);
+                "data": query_params
+            }).success(function(result){
+                var coverage = highest_coverage(request.text, result);
+                console.log('Coverage:', coverage);
+                if ((result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
+                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                } else {
+                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
                 }
+                tab.set({'search_result': result});
+                response(result);
+            }).error(function(xhr, text_status, error_thrown){
+                chrome.pageAction.hide(tab.get('id'));
             });
+
         } else {
             // Older Chrome versions don't provide the webNavigation API so we have to rely on the
             // tabs.onUpdated event to signal when to extract the article text. Unfortunately this leads
