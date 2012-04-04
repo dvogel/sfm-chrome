@@ -18,9 +18,9 @@
 	border-width: 0;
 	background: none #f9f6ed;
 	position: fixed;
-	top: 5%;
-	left: 5%;
-	width: 90%;
+	top: 2%;
+	left: 2%;
+	width: 1000px;
 	height: 85%;
 	margin: 0;
 	padding: 0;
@@ -38,9 +38,8 @@
 #churnalism-close {
 	background-image: none;
 	position: absolute;
-	top: 1em;
-	right: 3em;
-	width: 4em;
+	top: 5%;
+	right: 5%;
 	max-width: 10%;
 }
 
