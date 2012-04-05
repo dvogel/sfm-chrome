@@ -19,9 +19,9 @@
 	background: none #f9f6ed;
 	position: fixed;
 	top: 2%;
-	left: 2%;
-	width: 1000px;
-	height: 85%;
+	bottom: 2%;
+	left: 0;
+	right: 0;
 	margin: 0;
 	padding: 0;
 }
@@ -32,14 +32,17 @@
 	height: 100%;
 	margin: 0;
 	padding: 0;
-	border-width: 0;
+	border-width: 1px;
+	border-color: black;
+	border-style: solid;
 }
 
 #churnalism-close {
 	background-image: none;
-	position: absolute;
+/*	position: absolute;
 	top: 5%;
 	right: 5%;
-	max-width: 10%;
+	max-width: 10%; */
+	display: none;
 }
 

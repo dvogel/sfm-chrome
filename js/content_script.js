@@ -38,6 +38,11 @@ var handleMessage = function (request, sender, response) {
             $("#churnalism-overlay").scroll(prevent_scroll);
             $("#churnalism-overlay").bind('mousewheel', prevent_scroll);
 
+            var docwidth = jQuery(document).width();
+            var halfdelta = (docwidth - 1000) / 2;
+            $("#churnalism-overlay").css('width', '1000px');
+            $("#churnalism-overlay").css('left', halfdelta + 'px');
+
             overlay.fadeIn();
             mask.fadeIn();
         } else {
