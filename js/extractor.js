@@ -32,22 +32,28 @@ var textRenderer = function (node) {
 	var rope = [];
     while (walker.nextNode()) {
         if (walker.currentNode.nodeType == 3) {
-            var text = walker.currentNode.textContent.trim();
+            var text = walker.currentNode.textContent;
+            var trimmed = text.trimRight();
+            if (text != trimmed) {
+                text = trimmed + ' ';
+            } else {
+                text = trimmed;
+            }
             if (text.length > 0) {
 				rope.push(text);
 			}
 		} else if (/^(p|br|pre)$/i.test(walker.currentNode.nodeName)) {
-			rope.push('\n');
+			rope.push(' \n');
         } else {
             console.log('ArticleExtractor ignoring node: ' + walker.currentNode.nodeType + ' (' + walker.currentNode.nodeName + ')');
 		}
     }
 
-	return rope.join(' ')
+	return rope.join('')
                .replace(/^\s+$/m, '')                           // Kill empty lines
                .replace(/[\r\n]{2,}/g, '\n')                    // Collapse 2+ line breaks into a single line break
                .replace(/\n/g, '\n\n')                          // Re-expand line breaks to 2-breaks for readability
-               .replace(/ ([,;:]\s)/g, '$1')
+               .replace(/ ([.,;:]\s)/g, '$1')
                .replace(/([[{(]) (.+) ([)}\]])/g, '$1$2$3');
 };
 
@@ -409,13 +415,21 @@ ArticleExtractor = function (NS) {
         };
 
         var extract_title = function () { 
-            title = srcdoc.title.trim();
-            if (title.length > 0)
-                return;
-
             title = jQuery('#title', doc).text().trim();
             if (title.length > 0)
                 return; 
+
+            title = jQuery('h1', article_elem).text().trim();
+            if (title.length > 0)
+                return;
+
+            title = jQuery('meta[name=Title]').attr('content');
+            if (title.length > 0)
+                return;
+
+            title = srcdoc.title.trim();
+            if (title.length > 0)
+                return;
         };
 
         var sanitize_title = function () { 
