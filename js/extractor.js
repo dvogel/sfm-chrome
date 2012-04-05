@@ -424,7 +424,7 @@ ArticleExtractor = function (NS) {
                 return;
 
             title = jQuery('meta[name=Title]').attr('content');
-            if (title.length > 0)
+            if ((title != null) && (title.length > 0))
                 return;
 
             title = srcdoc.title.trim();
