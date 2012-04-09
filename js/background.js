@@ -88,7 +88,7 @@ var defaultOptions = {
         "www.newscientist.com",
     ],
     use_generic_news_pattern: false,
-    search_server: 'http://127.0.0.1:7000',
+    search_server: 'http://churnalism.sunlightfoundation.com:8080',
     submit_urls: false
 };
 
