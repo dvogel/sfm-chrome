@@ -6,6 +6,7 @@ var standardize_quotes = function (text, leftsnglquot, rightsnglquot, leftdblquo
 };
 
 var handleMessage = function (request, sender, response) {
+    console.log(request);
     if (request.method == 'log') {
         console.log(request.message);
 
@@ -20,10 +21,7 @@ var handleMessage = function (request, sender, response) {
             overlay_frame.appendTo(overlay);
             overlay.appendTo("body");
 
-            var doc = overlay_frame[0].contentDocument || overlay_frame[0].contentWindow.document;
-            doc.open();
-            doc.writeln(request.content);
-            doc.close();
+            overlay_frame.attr('src', request.url);
 
             var close_overlay = function (click) {
                 $("#churnalism-mask").fadeOut(function(){ $("#churnalism-mask").remove(); });

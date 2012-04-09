@@ -249,19 +249,11 @@ var requestIFrameInjection = function (chromeTab) {
     if ((search_result == null) || (search_result['documents']['rows'].length == 0))
         return;
 
-    $.ajax({
-        "type": "GET",
-        "url": url.replace('__UUID__', tab.get('search_result')['uuid'])
-    }).success(function(iframe_content){
-        var req = {
-            'method': 'injectIFrame',
-            'content': iframe_content
-        };
-        chrome.tabs.sendRequest(tab.get('id'), req);
-    }).error(function(xhr, text_status, error_thrown) {
-        chrome.pageAction.hide(tab.get('id'));
-        // TODO: Maybe this should open a pageAction page?
-    });
+    var req = {
+        'method': 'injectIFrame',
+        'url': url.replace('__UUID__', tab.get('search_result')['uuid'])
+    };
+    chrome.tabs.sendRequest(tab.get('id'), req);
 };
 
 var handleMessage = function (request, sender, response) {
