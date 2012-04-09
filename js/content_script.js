@@ -47,10 +47,7 @@ var handleMessage = function (request, sender, response) {
             $("#churnalism-iframe").remove();
             var overlay_frame = $('<iframe id="churnalism-iframe"></iframe>');
             overlay_frame.appendTo(overlay);
-            var doc = overlay_frame[0].contentDocument || overlay_frame[0].contentWindow.document;
-            doc.open();
-            doc.writeln(request.content);
-            doc.close();
+            overlay_frame.attr('src', request.url);
         }
     } else {
         console.log('content_script.js', 'handleMessage', request, sender, response);
