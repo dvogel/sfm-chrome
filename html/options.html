@@ -6,6 +6,7 @@
     <script src="/js/jquery.ui.js"></script>
     <script src="/js/jquery.tmpl.js"></script>
     <script src="/js/jquery.validate.js"></script>
+	<script src="/js/jquery.tablesorter.min.js"></script>
     <script src="/js/options.js"></script>
     <style type="text/css">
       #options { min-width: 200px; max-width: 600px; margin: auto; margin-top: 2em;  }
@@ -15,9 +16,17 @@
         font-size: 1.5em; padding: 0.5em; border: 1px solid #999; box-shadow: 0 0 6px rgba(0,0,0,0.5);
         display: block; width: 100%; box-sizing: border-box; -ms-box-sizing: border-box; -moz-box-sizing: border-box; -webkit-box-sizing: border-box;
       }
-      #sites-list { margin: 0; list-style: none; padding-left: 0; }
-      #sites-list label { padding: 0.5em; width: 100%;  }
-      #sites-list li:nth-child(odd) { background-color: #eee }
+	  table.fixedHeader { overflow: hidden; }
+	  table.fixedHeader thead { position: relative; width: 100%; }
+	  table.fixedHeader thead tr { display: block; }
+	  html > body table.fixedHeader > tbody.scrollable { display: block; overflow: auto; width: 100%; }
+	  #sites-list-container { width: 100%; }
+	  #sites-list { width: 100%; }
+	  #sites-list tbody { height: 3in; }
+	  #sites-list > tbody > tr > td:first-child { width: 90%; }
+	  #sites-list th { background: none transparent; padding: 0 18px 0 0; }
+	  #sites-list th.headerSortUp { background: url(/img/sortArrows_up.png) top right no-repeat; }
+	  #sites-list th.headerSortDown { background: url(/img/sortArrows_down.png) top right no-repeat; }
 	  .ui-widget-content { padding: 0 1em 1em 1em; }
 	  .ui-widget-content p { font-size: 12px; }
     </style>
@@ -68,16 +77,29 @@
         <form id="newSite">
           <input name="url" placeholder="Enter a new site here..." class="ui-corner-all" />
         </form>
-        <ul id="sites-list">
-        </ul>
+		<div id="sites-list-container">
+		</div>
       </div>
       <button id="reset">Reset</button>
+      <button id="save">Save</button>
     </div>
     <script id="site-list-item" type="text/x-jquery-tmpl">
-      <li>
-        <button class="delete">Delete</button>
-        <label>${url}</label>
-      </li>
+		<tr>
+			<td>${url}</td>
+			<td><button class="delete">Delete</button></td>
+		</tr>
     </script>
+	<script id="sites-list-tmpl" type="text/x-jquery-tmpl">
+		<table id="sites-list" class="fixedHeader">
+			<thead>
+				<tr>
+					<th>Web Address</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody class="scrollable">
+			</tbody>
+		</table>
+	</script>
   </body>
 </html>
