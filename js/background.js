@@ -293,8 +293,12 @@ var handleMessage = function (request, sender, response) {
                 console.log('Coverage:', coverage);
                 if ((result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
                     chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                    chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
+                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
                 } else {
                     chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
+                    chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
+                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
                 }
                 tab.set({'search_result': result});
                 response(result);
@@ -309,8 +313,11 @@ var handleMessage = function (request, sender, response) {
             var coverage = highest_coverage(tab.get('article_text'), prior_result);
             if ((prior_result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
                 chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
             } else {
                 chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
+                chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
+                chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
             }
         }
 
