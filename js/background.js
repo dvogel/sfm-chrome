@@ -66,7 +66,6 @@ var defaultOptions = {
         "www.usatoday.com",
         "www.latimes.com",
         "www.mercurynews.com",
-        "www.washingtonpost.com",
         "www.nypost.com",
         "www.nydailynews.com",
         "www.denverpost.com",
