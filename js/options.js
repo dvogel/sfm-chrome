@@ -1,7 +1,31 @@
 $(function() {
+    (function(){
+        // remove layerX and layerY
+        var all = $.event.props,
+        len = all.length,
+        res = [];
+        while (len--) {
+            var el = all[len];
+            if (el != 'layerX' && el != 'layerY') res.push(el);
+        }
+        $.event.props = res;
+    }());
+
     function renderList (options) {
+        $("#sites-list").remove();
+
+        var sites_list = $("#sites-list-tmpl").tmpl([{}]);
+        $("#sites-list-container").append(sites_list);
+
         var item_contexts = options.sites.map(function(site){ return {'url': site}; });
-        $('#sites-list').empty().append($("#site-list-item").tmpl(item_contexts));
+        $('#sites-list tbody').empty().append($("#site-list-item").tmpl(item_contexts));
+
+        $("#sites-list").tablesorter({
+            sortList: [[0,0]], 
+            headers: { 
+                0: { sorter: 'text' } 
+            }
+        });
     }
 
     function updateOptions(){
@@ -11,7 +35,7 @@ $(function() {
             use_generic_news_pattern: useGenericNewsPattern(),
             sites: []
         };
-        $('#sites-list li label').each(function(i,el){
+        $('#sites-list tbody td:first-child').each(function(i,el){
             options.sites.push($(el).text());
         });
         chrome.extension.sendRequest({method:"saveOptions", options:options});
@@ -67,20 +91,26 @@ $(function() {
         }
     });
 
-    $("#reset").click(function(){
-        chrome.extension.sendRequest({method:"resetOptions"},function(response){
-            displayOptions();
+    $(document).ready(function(){
+        $("#reset").click(function(){
+            chrome.extension.sendRequest({method:"resetOptions"},function(response){
+                displayOptions();
+            });
         });
-    });
 
-    $(".delete").live('click',function(){
-        $(this).parent().remove();
-        updateOptions();
-    });
+        $("#save").click(function(){
+            updateOptions();
+        });
 
-    displayOptions();
+        $(".delete").live('click',function(){
+            $(this).parent().parent().remove();
+            updateOptions();
+        });
 
-    $(window).unload(function(){
-        updateOptions();
+        displayOptions();
+
+        $(window).unload(function(){
+            updateOptions();
+        });
     });
 });
