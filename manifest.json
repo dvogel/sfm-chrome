@@ -9,9 +9,10 @@
     "default_icon" : "img/searching.png",
     "default_title" : "Checking for churnalism!"
   },
-  "icons": { "16": "img/icon.ico",
-             "48": "img/logo.png",
-            "128": "img/logo.png" },
+  "icons": { // "16": "img/icon.ico",
+             "16": "img/churnalism_128x128.png",
+             "48": "img/churnalism_128x128.png",
+            "128": "img/churnalism_128x128.png" },
   "permissions": [
     "webNavigation",
     "tabs", 

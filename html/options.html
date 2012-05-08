@@ -1,88 +1,177 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="/css/jquery-ui-1.8.16.custom.css" type="text/css">
+    <link rel="stylesheet" href="/css/jquery-ui-1.8.20.custom.css" type="text/css">
+    <script src="/js/parseuri.js"></script>
     <script src="/js/jquery.js"></script>
     <script src="/js/jquery.ui.js"></script>
     <script src="/js/jquery.tmpl.js"></script>
-    <script src="/js/jquery.validate.js"></script>
 	<script src="/js/jquery.tablesorter.min.js"></script>
     <script src="/js/options.js"></script>
     <style type="text/css">
-      #options { min-width: 200px; max-width: 600px; margin: auto; margin-top: 2em;  }
+        /*  HTML5 ✰ Boilerplate  */
+
+        html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+        abbr, address, cite, code, del, dfn, em, img, ins, kbd, q, samp,
+        small, strong, sub, sup, var, b, i, dl, dt, dd, ol, ul, li,
+        fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td,
+        article, aside, canvas, details, figcaption, figure,  footer, header, hgroup, 
+        menu, nav, section, summary, time, mark, audio, video {
+          margin:0;
+          padding:0;
+          border:0;
+          outline:0;
+          font-size:100%;
+          vertical-align:baseline;
+          background:transparent;
+          font-family: sans-serif;
+        }                  
+        article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section { display: block; }
+        ul, ol { list-style: none; }
+        blockquote, q { 
+            background:url('../images/quotes.png') 12px top no-repeat ;
+            quotes: '»' '«' ;
+            margin-left:30px;
+            padding-left:35px;
+            border-left: 1px solid #E5E4DB;
+            color: #726B68; 
+            margin-bottom: 1em;
+            }
+      /* End boiler-plate */
+
+      body { font-size: 14px; }
+      .ui-widget-content button { font-size: 13px; }
+      div.ui-widget-content { padding: 1em; }
+      .ui-widget-content p { margin-bottom: 1em; }
+      .col { float: left; width: 368px; margin: 15px; border: 0 solid blue; height: 80%; }
+      .clear { clear: both; }
+      #options { min-width: 200px; max-width: 800px; margin: auto; margin-top: 2em;  }
       h1, h2 { padding: .5em; margin: 0; position: relative; }
       #newSite { padding: .6em; margin: 0; }
       #newSite input {
-        font-size: 1.5em; padding: 0.5em; border: 1px solid #999; box-shadow: 0 0 6px rgba(0,0,0,0.5);
+        font-size: 1.1em; padding: 0.5em; border: 1px solid #999; box-shadow: 0 0 6px rgba(0,0,0,0.5);
         display: block; width: 100%; box-sizing: border-box; -ms-box-sizing: border-box; -moz-box-sizing: border-box; -webkit-box-sizing: border-box;
       }
+      #host-preview-container { display: none; padding: 1em; }
+      #host-preview-container label { font-weight: bold; font-size: 13px; }
+      #host-preview { font-size: 15px; }
+      #host-specificity { display: inline-block; width: 45%; height: 12px; margin: 0 1em 1em 1em; padding: 0; }
+      #host-specificity-label { display: inline-block; font-weight: bold; font-size: 12px; vertical-align: top; }
+      #host-warning { color: rgb(99, 0, 0); font-size: 11px; }
+	  input#search-server { width: 98%; margin: auto auto; }
 	  table.fixedHeader { overflow: hidden; }
 	  table.fixedHeader thead { position: relative; width: 100%; }
 	  table.fixedHeader thead tr { display: block; }
-	  html > body table.fixedHeader > tbody.scrollable { display: block; overflow: auto; width: 100%; }
-	  #sites-list-container { width: 100%; }
+      html > body table.fixedHeader > tbody.scrollable { display: block; overflow: auto; width: 100%; }
+	  #sites-list-container { width: 100%; height: 50%; }
 	  #sites-list { width: 100%; }
-	  #sites-list tbody { height: 3in; }
-	  #sites-list > tbody > tr > td:first-child { width: 90%; }
-	  #sites-list th { background: none transparent; padding: 0 18px 0 0; }
-	  #sites-list th.headerSortUp { background: url(/img/sortArrows_up.png) top right no-repeat; }
-	  #sites-list th.headerSortDown { background: url(/img/sortArrows_down.png) top right no-repeat; }
+	  #sites-list tbody { min-height: 2in; max-height: 3in; }
+	  #sites-list > tbody > tr > td:first-child { width: 254px; }
+	  #sites-list th, #quickadd-list th { background: none transparent; padding: 0 18px 0 0; cursor: pointer; }
+	  #sites-list th.headerSortUp, #quickadd-list th.headerSortUp { background: url(/img/sortArrows_up.png) top right no-repeat; }
+	  #sites-list th.headerSortDown, #quickadd-list th.headerSortDown { background: url(/img/sortArrows_down.png) top right no-repeat; }
+      #quickadd-list-container { width: 100%; height: 25%; }
+      #quickadd-list { width: 100%; }
+      #quickadd-list tbody { min-height: 1in; max-height: 2in; }
+      #quickadd-list > tbody > tr > td:first-child { width: 230px; }
+      #quickadd-list-empty-placeholder { color: gray; font-size: 2em; text-align: center; vertical-align: middle; }
+
+      #sites-list tr.odd, #quickadd-list tr.odd { background-color: # }
+      #sites-list td:first-child, #quickadd-list td:first-child { letter-spacing: 115%; }
+      /*
 	  .ui-widget-content { padding: 0 1em 1em 1em; }
-	  .ui-widget-content p { font-size: 12px; }
+      .ui-widget-content p { font-size: 12px; }
+      */
+      #search-server-header, #search-server-content { display: none; }
     </style>
   </head>
   <body>
-    <script src="/js/analytics.js"></script>
-    <div id="options">
+      <script src="/js/analytics.js"></script>
+      <div id="options">
 
-        <h1 class="ui-widget-header ui-corner-top">
-            Privacy
-        </h1>
-        <div id="privacy" class="ui-widget ui-widget-content ui-corner-bottom">
-            <p>This extension submits the text and title of the news articles you read to the Churnalism servers. This is limited to the set of websites listed below. We do this because it is required by the underlying technology. Any identifying information is discarded.</p>
+          <div class="col">
+              <h1 class="ui-widget-header ui-corner-top">
+                  Sites to Examine
+              </h1>
+              <div class="ui-widget ui-widget-content ui-corner-bottom">
+                  <p>
+                  The Churnalism extension is intended to examine news articles. To avoid examining web pages that are not news articles, it will only examine pages that match patterns in this list.
+                  </p>
 
-			<p>While the text and title of the article must be submitted in order to provide you search results, we would also like to submit the URL of the page. This allows us to determine how accurately our extension extracts the article text and reduces our server load by relying on caching techniques that speed up the rest of the web. This is also limited to the websites listed below and we do not associate any identifying information with the URL, so we cannot track your browsing history.</p>
+                  <div id="sites-list-container">
+                  </div>
 
-            <input type="checkbox" id="submit-urls" /> Submit URLs of news articles?
-        </div>
+                  <br>
+                  <hr>
 
-        <br />
-        <br />
+                  <p>Quickly add sites you are viewing now:</p>
+                  <div id="quickadd-list-container">
+                      <div id="quickadd-list-empty-placeholder">
+                          None
+                      </div>
+                  </div>
 
-        <h1 class="ui-widget-header ui-corner-top">
-       		Check all News Articles
-        </h1>
-		<div class="ui-widget ui-widget-content ui-corner-bottom">
-			<p>Usually only the websites in the list below are searched for Churnalism. The extionsion can also search all pages with the word "news" or "article" in the web address. This is an imperfect test of whether a web page is a news article, so it may miss some news articles and it may consider some non-news pages to be news.</p>
-            <input type="checkbox" id="use-generic-news-pattern" class="ui-corner-all" /> Check for "news" and "article" in web address?
-        </div>
+                  <hr>
 
-        <br />
-        <br />
+                  <p>Or add any site manually:</p>
+                  <form id="newSite">
+                      <input name="url" autocomplete="off" placeholder="Enter a new site here..." class="ui-corner-all" />
+                  </form>
+                  <div id="host-preview-container">
+                      <div id="host-specificity" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"></div>
+                      <label id="host-specificity-label"></label>
+                      <label for="host-preview">Preview:</label>
+                      <span id="host-preview"></span>
+                      <br>
+                      <br>
+                      <button id="manually-add-host">Add to list</button>
+                      <span id="host-warning"></span>
+                  </div>
+              </div>
+          </div>
 
-        <h1 class="ui-widget-header ui-corner-top">
-            Search Server
-        </h1>
-        <div class="ui-widget ui-widget-content ui-corner-bottom">
-            Search Server: <input type="text" id="search-server" class="ui-corner-all" />
-        </div>
+          <div class="col">
+              <h1 class="ui-widget-header ui-corner-top">
+                  Privacy
+              </h1>
+              <div id="privacy" class="ui-widget ui-widget-content ui-corner-bottom">
+                  <p>This extension submits the text and title of the news articles you read to the Churnalism servers. This is limited to the set of websites listed below. We do this because it is required by the underlying technology. Any identifying information is discarded.</p>
 
-        <br />
-        <br />
+                  <p>While the text and title of the article must be submitted in order to provide you search results, we would also like to submit the URL of the page. This allows us to determine how accurately our extension extracts the article text and reduces our server load by relying on caching techniques that speed up the rest of the web. This is also limited to the websites listed below and we do not associate any identifying information with the URL, so we cannot track your browsing history.</p>
 
-      <h1 class="ui-widget-header ui-corner-top">
-        Sites Whitelist
-      </h1>
-      <div class="ui-widget ui-widget-content ui-corner-bottom">
-        <form id="newSite">
-          <input name="url" placeholder="Enter a new site here..." class="ui-corner-all" />
-        </form>
-		<div id="sites-list-container">
-		</div>
+                  <input type="checkbox" id="submit-urls" /> Submit URLs of news articles?
+              </div>
+
+              <br />
+              <br />
+
+              <h1 class="ui-widget-header ui-corner-top">
+                  Check all News Articles
+              </h1>
+              <div class="ui-widget ui-widget-content ui-corner-bottom">
+                  <p>Usually only the websites in the list below are searched for Churnalism. The extionsion can also search all pages with the word "news" or "article" in the web address. This is an imperfect test of whether a web page is a news article, so it may miss some news articles and it may consider some non-news pages to be news.</p>
+                  <input type="checkbox" id="use-generic-news-pattern" class="ui-corner-all" /> Check for "news" and "article" in web address?
+              </div>
+
+              <br />
+              <br />
+
+              <h1 class="ui-widget-header ui-corner-top" id="search-server-header">
+                  Search Server
+              </h1>
+              <div class="ui-widget ui-widget-content ui-corner-bottom" id="search-server-content">
+                  <p>Search Server:</p> <input type="text" id="search-server" class="ui-corner-all" />
+              </div>
+
+              <br />
+              <br />
+
+              <button id="reset">Revert to defaults</button>
+              <button id="save">Save now</button>
+          </div>
+
+          <div class="clear"></div>
       </div>
-      <button id="reset">Reset</button>
-      <button id="save">Save</button>
-    </div>
     <script id="site-list-item" type="text/x-jquery-tmpl">
 		<tr>
 			<td>${url}</td>
@@ -101,5 +190,23 @@
 			</tbody>
 		</table>
 	</script>
+    <script id="quickadd-list-item-tmpl" type="text/x-jquery-tmpl">
+		<tr>
+			<td>${domain}</td>
+			<td><button class="add-to-whitelist">Add to list</button></td>
+		</tr>
+    </script>
+    <script id="quickadd-list-tmpl" type="text/x-jquery-tmpl">
+        <table id="quickadd-list" class="fixedHeader">
+            <thead>
+                <tr>
+                    <th>Web Address</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody class="scrollable">
+            </tbody>
+        </table>
+    </script>
   </body>
 </html>

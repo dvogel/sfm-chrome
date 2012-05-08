@@ -1,10 +1,3 @@
-// parseUri 1.2.2
-// (c) Steven Levithan <stevenlevithan.com>
-// MIT License
-function parseUri(d){for(var a=parseUri.options,d=a.parser[a.strictMode?"strict":"loose"].exec(d),c={},b=14;b--;)c[a.key[b]]=d[b]||"";c[a.q.name]={};c[a.key[12]].replace(a.q.parser,function(d,b,e){b&&(c[a.q.name][b]=e)});return c}
-parseUri.options={strictMode:!1,key:"source,protocol,authority,userInfo,user,password,host,port,relative,path,directory,file,query,anchor".split(","),q:{name:"queryKey",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:{strict:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,loose:/^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/}};
-// End parseUri
-
 var MINIMUM_COVERAGE = 0.0;
 
 Backbone.sync = function(method, model, options) {
@@ -320,6 +313,16 @@ var handleMessage = function (request, sender, response) {
                 chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
             }
         }
+    } else if (request.method == 'getAllTabs') {
+        chrome.windows.getAll({populate: true}, function(windows){
+            var tabs = [];
+            jQuery(windows).each(function(winIdx, win){
+                jQuery(win.tabs).each(function(tabIdx, tab) {
+                    tabs.push(tab);
+                });
+            });
+            response(tabs);
+        });
 
     } else if (request.method == 'whoami?') {
         response(sender.tab);
