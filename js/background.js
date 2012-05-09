@@ -199,28 +199,34 @@ var executeScriptsSynchronously = function (tab_id, files, callback) {
     }
 };
 
-var highest_coverage = function (text, search_results) {
-    var rows = search_results['documents']['rows'];
-    var highest = 0;
-
-    jQuery.each(rows, function(idx, row){
-        var chars_matched = 0;
-        jQuery.each(row['fragments'], function(idx, fragment){
-            chars_matched += fragment[2];
-        });
-        var pct_of_match = chars_matched / row['characters'];
-        var pct_of_source = chars_matched / text.length;
-        if (pct_of_match > highest) {
-            highest = pct_of_match;
-        }
-        if (pct_of_source > highest) {
-            highest = pct_of_source;
-        }
+var coverage = function (text, row) {
+    var chars_matched = 0;
+    jQuery.each(row['fragments'], function(idx, fragment){
+        chars_matched += fragment[2];
     });
-
-    return highest;
+    var pct_of_match = chars_matched / row['characters'];
+    var pct_of_source = chars_matched / text.length;
+    return Math.max(pct_of_match, pct_of_source);
 };
 
+var select_search_result = function (search_results, predicate) {
+    var rows = search_results['documents']['rows'];
+    return rows.reduce(function(state, row){
+        var attr = predicate(row);
+        if (attr > state[0]) {
+            return [attr, row];
+        } else {
+            return state;
+        }
+    }, [null, null])[1];
+};
+
+var with_best_search_result = function (text, results, next) {
+    var row_coverage = function(row){ return coverage(text, row); };
+    var best = select_search_result(results, row_coverage);
+    next(best);
+};
+    
 var checkForValidUrl = function (tab) {
     var loc = parseUri(tab.get('url'));
     if (onWhitelist({'host': loc.host, 'pathname': loc.path})) {
@@ -243,16 +249,20 @@ var requestIFrameInjection = function (chromeTab) {
     }
 
     var options = restoreOptions();
-    var url = options.search_server + '/sidebyside/chrome/__UUID__/';
+    var url = options.search_server + '/sidebyside/chrome/__UUID__/__DOCTYPE__/__DOCID__/';
     var search_result = tab.get('search_result');
     if ((search_result == null) || (search_result['documents']['rows'].length == 0))
         return;
 
-    var req = {
-        'method': 'injectIFrame',
-        'url': url.replace('__UUID__', tab.get('search_result')['uuid'])
-    };
-    chrome.tabs.sendRequest(tab.get('id'), req);
+    with_best_search_result(tab.get('article_text'), search_result, function(best_match){
+        var req = {
+            'method': 'injectIFrame',
+            'url': url.replace('__UUID__', search_result['uuid'])
+                      .replace('__DOCTYPE__', best_match['doctype'])
+                      .replace('__DOCID__', best_match['docid'])
+        };
+        chrome.tabs.sendRequest(tab.get('id'), req);
+    });
 };
 
 var handleMessage = function (request, sender, response) {
@@ -288,17 +298,17 @@ var handleMessage = function (request, sender, response) {
                 "url": url,
                 "data": query_params
             }).success(function(result){
-                var coverage = highest_coverage(request.text, result);
-                console.log('Coverage:', coverage);
-                if ((result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
-                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
-                    chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
-                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
-                } else {
-                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
-                    chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
-                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
-                }
+                with_best_search_result(result.text, result, function(best_match){
+                    if (best_match && (coverage(result.text, best_match) >= MINIMUM_COVERAGE)) {
+                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                        chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
+                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
+                    } else {
+                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
+                        chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
+                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
+                    }
+                });
                 tab.set({'search_result': result});
                 response(result);
             }).error(function(xhr, text_status, error_thrown){
@@ -309,15 +319,16 @@ var handleMessage = function (request, sender, response) {
             // Older Chrome versions don't provide the webNavigation API so we have to rely on the
             // tabs.onUpdated event to signal when to extract the article text. Unfortunately this leads
             // to multiple article extractions and we don't want to make a network request for each.
-            var coverage = highest_coverage(tab.get('article_text'), prior_result);
-            if ((prior_result['documents']['rows'].length > 0) && (coverage >= MINIMUM_COVERAGE)) {
-                chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
-                chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
-            } else {
-                chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
-                chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
-                chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
-            }
+            with_best_search_result(tab.get('article_text'), prior_result, function(best_match){
+                if (best_match && (coverage(tag.get('article_text')) >= MINIMUM_COVERAGE)) {
+                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
+                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
+                } else {
+                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
+                    chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
+                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
+                }
+            });
         }
 
     } else if (request.method == 'whoami?') {
