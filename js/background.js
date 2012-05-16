@@ -291,8 +291,8 @@ var handleMessage = function (request, sender, response) {
                 "url": url,
                 "data": query_params
             }).success(function(result){
-                with_best_search_result(result.text, result, function(best_match){
-                    if (best_match && (coverage(result.text, best_match) >= MINIMUM_COVERAGE)) {
+                with_best_search_result(request.text, result, function(best_match){
+                    if (best_match && (coverage(request.text, best_match) >= MINIMUM_COVERAGE)) {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
                         chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
                         chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
