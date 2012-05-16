@@ -1,4 +1,4 @@
-var MINIMUM_COVERAGE = 0.0;
+var MINIMUM_COVERAGE = 10;
 
 Backbone.sync = function(method, model, options) {
     /* Do nothing */
