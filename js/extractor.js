@@ -64,8 +64,8 @@ ArticleExtractor = function (NS) {
     var htmlElements = /^(a|abbr|address|area|article|aside|audio|b|base|bdi|bdo|blockquote|body|br|button|canvas|caption|cite|code|col|colgroup|command|datalist|dd|del|details|dfn|div|dl|dt|em|embed|fieldset|figcaption|figure|footer|form|h1, h2, h3, h4, h5, h6|head|header|hgroup|hr|html|i|iframe|img|input|ins|kbd|keygen|label|legend|li|link|map|mark|menu|meta|meter|nav|noscript|object|ol|optgroup|option|output|p|param|pre|progress|q|rp|rt|ruby|s|samp|script|section|select|small|source|span|strong|style|sub|summary|sup|table|tbody|td|textarea|tfoot|th|thead|time|title|tr|track|u|ul|var|video|wbr)$/i;
     var unlikelyCandidates = /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i;
     var okMaybeItsACandidate = /and|article|body|column|main|shadow/i;
-    var classWeightPositive = /article|body|content|entry|hentry|main|page|pagination|post|text|blog|story/i;
-    var classWeightNegative = /combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget/i;
+    var classWeightPositive = /article|body|content|entry|hentry|main|page|pagination|post|\btext\b|blog|story/i;
+    var classWeightNegative = /combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget|hidden/i;
     var divToPElements = /<(a|blockquote|dl|div|img|ol|p|pre|table|ul)/i;
 
     var _describe = function (node, depth) {
@@ -445,6 +445,8 @@ ArticleExtractor = function (NS) {
 
         remove_elements(jQuery('script', doc));
         remove_elements(jQuery('style', doc));
+        // Remove hidden elements
+        jQuery(doc).remove('P:hidden, DIV:hidden, PRE:hidden, TD:hidden');
         fix_misused_divs();
         score_paragraphs();
         extract_article();
