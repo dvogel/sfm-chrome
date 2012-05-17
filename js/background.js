@@ -44,6 +44,7 @@ var Tabs = new TabStates();
 
 var defaultOptions = {
     sites: [
+        "www.google.com/hostednews/...",
         "www.reuters.com",
         "hosted.ap.org",
         ".nytimes.com",
@@ -56,7 +57,7 @@ var defaultOptions = {
         "www.prnewswire.com",
         "www.pcmag.com",
         "online.wsj.com",
-        "www.usatoday.com",
+        ".usatoday.com",
         "www.latimes.com",
         "www.mercurynews.com",
         "www.nypost.com",
@@ -78,6 +79,17 @@ var defaultOptions = {
         "www.scientificamerican.com",
         "www.sciencemag.org",
         "www.newscientist.com",
+        "www.npr.org",
+        "www.techcrunch.com",
+        ".politico.com",
+        "thehill.com",
+        ".rollcall.com",
+        ".talkingpointsmemo.com",
+        "www.bloomberg.com",
+        ".businessweek.com",
+        "www.csmonitor.com",
+        "timesofindia.indiatimes.com",
+        ".aljazeera.com",
     ],
     use_generic_news_pattern: false,
     search_server: 'http://churnalism.sunlightfoundation.com',
@@ -299,7 +311,7 @@ var handleMessage = function (request, sender, response) {
                     } else {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
                         chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
-                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
+                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html?tabId=" + sender.tab.id});
                     }
                 });
                 tab.set({'search_result': result});
@@ -323,7 +335,7 @@ var handleMessage = function (request, sender, response) {
                 }
             });
         }
-    } else if (request.method == 'getAllTabs') {
+    } else if (request.method == 'getAllBrowserTabs') {
         chrome.windows.getAll({populate: true}, function(windows){
             var tabs = [];
             jQuery(windows).each(function(winIdx, win){
@@ -334,6 +346,9 @@ var handleMessage = function (request, sender, response) {
             response(tabs);
         });
 
+    } else if (request.method == 'getTab') {
+        response(Tabs.get(request.tabId));
+    
     } else if (request.method == 'whoami?') {
         response(sender.tab);
 

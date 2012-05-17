@@ -2,11 +2,28 @@
 <html>
   <head>
 	  <style type="text/css">
-		  body { margin: 1em; padding: 0; min-width: 10em; }
+		  body { font-size: 14px; margin: 1em; padding: 0; min-width: 10em; width: 3.5in; }
+          #article-text { font-family: serif; }
+          #article-text p { margin: 1em 0; }
+          #show-text { margin: 1em; }
+          #hide-text { display: none; margin: 1em; }
+          #text-is-wrong { display: none; margin: 1em; }
+          button { display: inline-block; }
 	  </style>
+      <script src="/js/jquery.js"></script>
+      <script src="/js/jquery.ui.js"></script>
+      <script type="text/javascript" src="/js/explainnomatch.js"></script>
   </head>
   <body>
 	  This page does not match any press releases in the Churnalism database.
+
+      <br>
+      <hr>
+
+      <button id="show-text">Show article text</button>
+      <button id="hide-text">Hide article text</button>
+      <div id="article-text"></div>
+      <button id="text-is-wrong">This doesn't look right</button>
   </body>
 </html>
 

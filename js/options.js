@@ -47,7 +47,7 @@ $(function() {
             submitUrls(options['submit_urls']);
             searchServer(options['search_server']);
             useGenericNewsPattern(options['use_generic_news_pattern']);
-            chrome.extension.sendRequest({method:"getAllTabs"}, function(tabs){
+            chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
                 displayTabUrls(tabs, options);
             });
         });
