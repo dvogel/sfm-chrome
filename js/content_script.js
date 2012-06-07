@@ -62,6 +62,8 @@ var prevent_scroll = function (event) {
 };
 
 jQuery(document).ready(function(){
+    console.log("Churnalism loaded.");
+
     jQuery('iframe').each(function(idx, iframe){
         var src = jQuery(iframe).attr('src');
         if (/wmode=opaque/i.test(src)) {
@@ -84,5 +86,6 @@ jQuery(document).ready(function(){
         'title': title
     };
     chrome.extension.sendRequest(req);
+    console.log("Article text: ", article);
 });
 
