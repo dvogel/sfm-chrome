@@ -1,4 +1,8 @@
-var MINIMUM_COVERAGE = 0.10;
+// These thresholds default to impossibly high values
+// which effectively disable the extension unless the
+// values can be updated by fetch_site_settings.
+var MINIMUM_COVERAGE_PCT = Number.MAX_VALUE;
+var MINIMUM_COVERAGE_CHARS = Number.MAX_VALUE;
 
 Backbone.sync = function(method, model, options) {
     /* Do nothing */
@@ -40,7 +44,6 @@ var TabStates = Backbone.Collection.extend({
 });
 
 var Tabs = new TabStates();
-
 
 var defaultOptions = {
     sites: [
@@ -96,21 +99,45 @@ var defaultOptions = {
     submit_urls: false
 };
 
-function saveOptions(options){
+var fetch_site_settings = function (callback) {
+    var options = restoreOptions();
+    
+    var url = options.search_server + '/sidebyside/thresholds/';
+    $.ajax({
+        "type": "GET",
+        "url": url
+    }).success(function(result){
+        if (result['minimum_coverage_pct'] != null) {
+            MINIMUM_COVERAGE_PCT = result['minimum_coverage_pct'];
+        }
+        if (result['minimum_coverage_chars'] != null) {
+            MINIMUM_COVERAGE_CHARS = result['minimum_coverage_chars'];
+        }
+    
+        // Update these settings same time tomorrow
+        setTimeout(fetch_site_settings, 86400000);
+    }).error(function(){
+        // Try again in an hour
+        setTimeout(fetch_site_settings, 3600000);
+    });
+
+};
+
+var saveOptions = function (options){
     localStorage.setItem("options",JSON.stringify(options));
     compileWhitelist();
     return options;
-}
+};
 
-function restoreOptions(){
+var restoreOptions = function (){
     var options=JSON.parse(localStorage.getItem("options"));
     return (options==null)?resetOptions():options;
-}
+};
 
-function resetOptions(){
+var resetOptions = function (){
     localStorage.setItem("options",JSON.stringify(defaultOptions));
     return defaultOptions;
-}
+};
 
 var onWhitelist = function (location) {
     // This function is replaced by compileWhitelist
@@ -204,14 +231,10 @@ var executeScriptsSynchronously = function (tab_id, files, callback) {
     }
 };
 
-var coverage = function (text, row) {
-    var chars_matched = 0;
-    jQuery.each(row['fragments'], function(idx, fragment){
-        chars_matched += fragment[2];
-    });
-    var pct_of_match = chars_matched / row['characters'];
-    var pct_of_source = chars_matched / text.length;
-    return Math.max(pct_of_match, pct_of_source);
+
+var sufficient_coverage = function (row) {
+    return ((row['coverage'][0] >= MINIMUM_COVERAGE_CHARS) 
+            && (Math.round(row['coverage'][1]) >= MINIMUM_COVERAGE_PCT));
 };
 
 var select_search_result = function (search_results, predicate) {
@@ -227,12 +250,15 @@ var select_search_result = function (search_results, predicate) {
 };
 
 var with_best_search_result = function (text, results, next) {
-    var row_coverage = function(row){ return coverage(text, row); };
-    var best = select_search_result(results, row_coverage);
+    var row_coverage_and_density = function(row){ return row['coverage'][0] + row['density']; };
+    var best = select_search_result(results, row_coverage_and_density);
     next(best);
 };
     
 var checkForValidUrl = function (tab) {
+    if (MINIMUM_COVERAGE_PCT == Number.MAX_VALUE)
+        return;
+
     var loc = parseUri(tab.get('url'));
     if (onWhitelist({'host': loc.host, 'pathname': loc.path})) {
         chrome.pageAction.show(tab.get('id'));
@@ -304,7 +330,7 @@ var handleMessage = function (request, sender, response) {
                 "data": query_params
             }).success(function(result){
                 with_best_search_result(request.text, result, function(best_match){
-                    if (best_match && (coverage(request.text, best_match) >= MINIMUM_COVERAGE)) {
+                    if (best_match && sufficient_coverage(best_match)) {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
                         chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
                         chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
@@ -325,7 +351,7 @@ var handleMessage = function (request, sender, response) {
             // tabs.onUpdated event to signal when to extract the article text. Unfortunately this leads
             // to multiple article extractions and we don't want to make a network request for each.
             with_best_search_result(tab.get('article_text'), prior_result, function(best_match){
-                if (best_match && (coverage(tag.get('article_text')) >= MINIMUM_COVERAGE)) {
+                if (best_match && sufficient_coverage(best_match)) {
                     chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
                     chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
                 } else {
@@ -368,6 +394,7 @@ var handleMessage = function (request, sender, response) {
 
 var options = restoreOptions();
 compileWhitelist();
+fetch_site_settings();
 
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
     Tabs.remove(tabId);
