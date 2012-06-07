@@ -245,6 +245,22 @@ $(function() {
 
         displayOptions();
 
+        // Not really secret
+        var secret_string = "iddqd";
+        var keypress_history = [];
+        $("body").keypress(function(event){
+            if (event.srcElement == this) {
+                keypress_history.push(event.charCode);
+                if (keypress_history.length > secret_string.length) {
+                    keypress_history.shift();
+                }
+                var keypress_history_string = String.fromCharCode.apply(null, keypress_history);
+                if (keypress_history_string == secret_string) {
+                    $("#search-server-header, #search-server-content").show();
+                }
+            }
+        });
+
         $(window).unload(function(){
             updateOptions();
         });
