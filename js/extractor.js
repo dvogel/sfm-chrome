@@ -32,7 +32,7 @@ var textRenderer = function (node) {
 	var rope = [];
     while (walker.nextNode()) {
         if (walker.currentNode.nodeType == 3) {
-            var text = walker.currentNode.textContent;
+            var text = walker.currentNode.textContent.replace(/[ \t\s\r\n]+/g, ' ');
             var trimmed = text.trimRight();
             if (text != trimmed) {
                 text = trimmed + ' ';
@@ -163,7 +163,9 @@ ArticleExtractor = function (NS) {
         var remove_unlikely_candidates = function () {
             jQuery("*", doc).each(function(idx, node){
                 var attrstr = jQuery(node).attr('class') + ' ' + jQuery(node).attr('id');
-                if (unlikelyCandidates.test(attrstr) && (! okMaybeItsACandidate.test(attrstr)) && (node.tagName != 'BODY')) {
+                if ((attrstr.search(unlikelyCandidates) >= 0)
+                    && (attrstr.search(okMaybeItsACandidate) == -1)
+                    && (node.tagName != 'BODY')) {
                     jQuery(node).remove();
                 }
             });
@@ -208,19 +210,23 @@ ArticleExtractor = function (NS) {
             var score = 0;
 
             if ((classstr != null) && (classstr.length > 0)) {
-                if (classstr.search(classWeightNegative) >= 0) 
+                if (classstr.search(classWeightNegative) >= 0)  {
                     score -= 25;
+                }
                 
-                if (classstr.search(classWeightPositive) >= 0)
+                if (classstr.search(classWeightPositive) >= 0) {
                     score += 25;
+                }
             }
 
             if ((idstr != null) && (idstr.length > 0)) {
-                if (idstr.search(classWeightNegative) >= 0)
+                if (idstr.search(classWeightNegative) >= 0) {
                     score -= 25;
+                }
 
-                if (idstr.search(classWeightPositive) >= 0)
+                if (idstr.search(classWeightPositive) >= 0) {
                     score += 25;
+                }
             }
 
             return score;
@@ -323,11 +329,7 @@ ArticleExtractor = function (NS) {
         };
 
         var sanitize_article = function () {
-            remove_elements(jQuery('object', article_elem));
-            remove_elements(jQuery('embed', article_elem));
-            remove_elements(jQuery('iframe', article_elem));
-            remove_elements(jQuery('noscript', article_elem));
-            remove_elements(jQuery('textarea', article_elem));
+            remove_elements(jQuery('object, embed, iframe, noscript', article_elem));
 
             jQuery("*", article_elem).each(function(idx, node){
                 if (/h\d/i.test(node.tagName)) {
@@ -449,10 +451,12 @@ ArticleExtractor = function (NS) {
             } 
         };
 
-        remove_elements(jQuery('script', doc));
+        remove_elements(jQuery('script, noscript', doc));
         remove_elements(jQuery('style', doc));
+        remove_elements(jQuery('textarea, select, option, button', doc));
+        remove_unlikely_candidates();
         // Remove hidden elements
-        jQuery(doc).remove('P:hidden, DIV:hidden, PRE:hidden, TD:hidden');
+        jQuery(doc).remove('*:hidden, P:hidden, DIV:hidden, PRE:hidden, TD:hidden');
         fix_misused_divs();
         score_paragraphs();
         extract_article();
