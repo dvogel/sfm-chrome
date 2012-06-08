@@ -66,6 +66,7 @@ var handleMessage = function (request, sender, response) {
                 $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
             } else if (event.data == 'show_churnalism_comparison') {
                 inject_comparison_iframe(request.match.url);
+                $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
             }
         }, false);
 
