@@ -1,8 +1,11 @@
 // These thresholds default to impossibly high values
 // which effectively disable the extension unless the
 // values can be updated by fetch_site_settings.
-var MINIMUM_COVERAGE_PCT = Number.MAX_VALUE;
-var MINIMUM_COVERAGE_CHARS = Number.MAX_VALUE;
+var Params = {
+    'MINIMUM_COVERAGE_PCT': Number.MAX_VALUE,
+    'MINIMUM_COVERAGE_CHARS': Number.MAX_VALUE,
+    'WARNING_RIBBON_SRC': '/sidebyside/chrome/ribbon/'
+};
 
 Backbone.sync = function(method, model, options) {
     /* Do nothing */
@@ -102,16 +105,21 @@ var defaultOptions = {
 var fetch_site_settings = function (callback) {
     var options = restoreOptions();
     
-    var url = options.search_server + '/sidebyside/thresholds/';
+    var url = options.search_server + '/sidebyside/chrome/parameters/';
     $.ajax({
         "type": "GET",
         "url": url
     }).success(function(result){
-        if (result['minimum_coverage_pct'] != null) {
-            MINIMUM_COVERAGE_PCT = result['minimum_coverage_pct'];
-        }
-        if (result['minimum_coverage_chars'] != null) {
-            MINIMUM_COVERAGE_CHARS = result['minimum_coverage_chars'];
+        for (var key in result) {
+            var key1 = key.toUpperCase();
+            if (Params.hasOwnProperty(key1)) {
+                var current_value = Params[key1];
+                var new_value = result[key];
+                if (typeof(current_value) == typeof(new_value)) {
+                    console.log('Accepting remote setting', key1, current_value, new_value);
+                    Params[key1] = result[key];
+                }
+            }
         }
     
         // Update these settings same time tomorrow
@@ -233,8 +241,8 @@ var executeScriptsSynchronously = function (tab_id, files, callback) {
 
 
 var sufficient_coverage = function (row) {
-    return ((row['coverage'][0] >= MINIMUM_COVERAGE_CHARS) 
-            && (Math.round(row['coverage'][1]) >= MINIMUM_COVERAGE_PCT));
+    return ((row['coverage'][0] >= Params['MINIMUM_COVERAGE_CHARS']) 
+            && (Math.round(row['coverage'][1]) >= Params['MINIMUM_COVERAGE_PCT']));
 };
 
 var select_search_result = function (search_results, predicate) {
@@ -256,7 +264,7 @@ var with_best_search_result = function (text, results, next) {
 };
     
 var checkForValidUrl = function (tab) {
-    if (MINIMUM_COVERAGE_PCT == Number.MAX_VALUE)
+    if (Params['MINIMUM_COVERAGE_PCT'] == Number.MAX_VALUE)
         return;
 
     var loc = parseUri(tab.get('url'));
@@ -267,10 +275,20 @@ var checkForValidUrl = function (tab) {
         chrome.tabs.insertCSS(tab.get('id'), {file: "/css/churnalism.css"});
         executeScriptsSynchronously(tab.get('id'), [
             "/js/jquery-1.7.1.min.js",
+            "/js/jquery-ui-1.8.20.custom.min.js",
             "/js/extractor.js",
             "/js/content_script.js"
         ]);
     }
+};
+
+var comparisonUrl = function (uuid, doctype, docid) {
+    var options = restoreOptions();
+    var url = options.search_server + '/sidebyside/chrome/__UUID__/__DOCTYPE__/__DOCID__/';
+    url = url.replace('__UUID__', uuid)
+             .replace('__DOCTYPE__', doctype)
+             .replace('__DOCID__', docid);
+    return url;
 };
 
 var requestIFrameInjection = function (chromeTab) {
@@ -288,9 +306,9 @@ var requestIFrameInjection = function (chromeTab) {
     with_best_search_result(tab.get('article_text'), search_result, function(best_match){
         var req = {
             'method': 'injectIFrame',
-            'url': url.replace('__UUID__', search_result['uuid'])
-                      .replace('__DOCTYPE__', best_match['doctype'])
-                      .replace('__DOCID__', best_match['docid'])
+            'url': comparisonUrl(search_result.uuid,
+                                 best_match.doctype,
+                                 best_match.docid)
         };
         chrome.tabs.sendRequest(tab.get('id'), req);
     });
@@ -334,6 +352,18 @@ var handleMessage = function (request, sender, response) {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
                         chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
                         chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
+
+                        var req = {
+                            'method': 'injectWarningRibbon',
+                            'src': options.search_server + Params['WARNING_RIBBON_SRC'],
+                            'match': {
+                                'url': comparisonUrl(result.uuid,
+                                                     best_match.doctype,
+                                                     best_match.docid)
+                            }
+                        };
+                        chrome.tabs.sendRequest(sender.tab.id, req);
+
                     } else {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
                         chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
@@ -361,6 +391,7 @@ var handleMessage = function (request, sender, response) {
                 }
             });
         }
+
     } else if (request.method == 'getAllBrowserTabs') {
         chrome.windows.getAll({populate: true}, function(windows){
             var tabs = [];
@@ -377,6 +408,9 @@ var handleMessage = function (request, sender, response) {
     
     } else if (request.method == 'whoami?') {
         response(sender.tab);
+
+    } else if (request.method == "getParameters") {
+        response(Params);
 
     } else if (request.method == "getOptions") {
         response(restoreOptions());

@@ -83,6 +83,7 @@
       .ui-widget-content p { font-size: 12px; }
       */
       #search-server-header, #search-server-content { display: none; }
+      ul#search-server-params { padding-left: 2em; list-style-type: square; }
     </style>
   </head>
   <body>
@@ -156,22 +157,33 @@
               <br />
               <br />
 
-              <h1 class="ui-widget-header ui-corner-top" id="search-server-header">
-                  Search Server
-              </h1>
-              <div class="ui-widget ui-widget-content ui-corner-bottom" id="search-server-content">
-                  <p>Search Server:</p> <input type="text" id="search-server" class="ui-corner-all" />
-              </div>
-
-              <br />
-              <br />
-
               <button id="reset">Revert to defaults</button>
               <button id="save">Save now</button>
           </div>
 
           <div class="clear"></div>
+
+          <h1 class="ui-widget-header ui-corner-top" id="search-server-header">
+              Search Server
+          </h1>
+          <div class="ui-widget ui-widget-content ui-corner-bottom" id="search-server-content">
+              <p>Search Server:</p> <input type="text" id="search-server" class="ui-corner-all" />
+
+              <br>
+              <br>
+
+              <b>Paramters:</b>
+              <ul id="search-server-params">
+              </ul>
+          </div>
+
+          <div class="clear"></div>
       </div>
+    <script id="server-param-list-item" type="text/x-jquery-tmpl">
+        <li>
+        <b>${key}:</b> ${value}
+        </li>
+    </script>
     <script id="site-list-item" type="text/x-jquery-tmpl">
 		<tr>
 			<td>${url}</td>

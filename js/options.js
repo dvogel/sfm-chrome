@@ -114,6 +114,14 @@ $(function() {
             return $("input#search-server").val();
         } else {
             $("input#search-server").val(val);
+            $("ul#search-server-params").empty();
+            chrome.extension.sendRequest({'method': 'getParameters'}, function(params){
+                var items = [];
+                for (var key in params) {
+                    items.push({'key': key, 'value': params[key]});
+                }
+                $("#server-param-list-item").tmpl(items).appendTo("ul#search-server-params");
+            });
         }
     }
 
