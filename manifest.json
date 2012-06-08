@@ -1,6 +1,6 @@
 {
   "name": "Churnalism",
-  "version": "0.2",
+  "version": "0.9",
   "description": "Check news articles for press release influence.",
   "background_page": "html/background.html",
   "options_page": "html/options.html",
@@ -9,7 +9,7 @@
     "default_icon" : "img/searching.png",
     "default_title" : "Checking for churnalism!"
   },
-  "icons": { // "16": "img/icon.ico",
+  "icons": {
              "16": "img/churnalism_128x128.png",
              "48": "img/churnalism_128x128.png",
             "128": "img/churnalism_128x128.png" },
@@ -18,6 +18,6 @@
     "tabs", 
     "http://*/*",
     "https://*/*"
-  ]
-  // "content_security_policy": "default-src 'self'; style-src 'self'; script-src 'self'; http://us.churnalism.com http://google.com"
+  ],
+  "update_url": "http://churnalism.sunlightfoundation.com/static/chromeext/updates.xml"
 }
