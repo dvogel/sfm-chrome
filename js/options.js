@@ -33,6 +33,7 @@ $(function() {
             search_server: searchServer(),
             submit_urls: submitUrls(),
             use_generic_news_pattern: useGenericNewsPattern(),
+            include_local_news: includeLocalNews(),
             sites: []
         };
         $('#sites-list tbody td:first-child').each(function(i,el){
@@ -47,6 +48,7 @@ $(function() {
             submitUrls(options['submit_urls']);
             searchServer(options['search_server']);
             useGenericNewsPattern(options['use_generic_news_pattern']);
+            includeLocalNews(options['include_local_news']);
             chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
                 displayTabUrls(tabs, options);
             });
@@ -96,6 +98,16 @@ $(function() {
             $("input#use-generic-news-pattern")[0].checked = true;
         } else {
             $("input#use-generic-news-pattern")[0].checked = undefined;
+        }
+    }
+
+    function includeLocalNews (val) {
+        if (val == null) {
+            return ($("input#include-local-news")[0].checked == true);
+        } else if (val == true) {
+            $("input#include-local-news")[0].checked = true;
+        } else {
+            $("input#include-local-news")[0].checked = undefined;
         }
     }
 

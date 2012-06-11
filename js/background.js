@@ -1,11 +1,14 @@
 // These thresholds default to impossibly high values
 // which effectively disable the extension unless the
-// values can be updated by fetch_site_settings.
+// values can be updated by bootstrap.
 var Params = {
     'MINIMUM_COVERAGE_PCT': Number.MAX_VALUE,
     'MINIMUM_COVERAGE_CHARS': Number.MAX_VALUE,
     'WARNING_RIBBON_SRC': '/sidebyside/chrome/ribbon/'
 };
+
+var LocalNews = [
+];
 
 Backbone.sync = function(method, model, options) {
     /* Do nothing */
@@ -96,13 +99,17 @@ var defaultOptions = {
         "www.csmonitor.com",
         "timesofindia.indiatimes.com",
         ".aljazeera.com",
+        "news.smh.com.au",
+        "news.yahoo.com",
+        ".msnbc.msn.com"
     ],
+    include_local_news: true,
     use_generic_news_pattern: false,
     search_server: 'http://churnalism.sunlightfoundation.com',
     submit_urls: false
 };
 
-var fetch_site_settings = function (callback) {
+var bootstrap = function (callback) {
     var options = restoreOptions();
     
     var url = options.search_server + '/sidebyside/chrome/parameters/';
@@ -123,12 +130,17 @@ var fetch_site_settings = function (callback) {
         }
     
         // Update these settings same time tomorrow
-        setTimeout(fetch_site_settings, 86400000);
+        setTimeout(bootstrap, 86400000);
     }).error(function(){
         // Try again in an hour
-        setTimeout(fetch_site_settings, 3600000);
+        setTimeout(bootstrap, 3600000);
+    }).then(function(){
+        $.get(options.search_server + '/static/chromeext/localnews.json').success(function(result){
+            LocalNews = result;
+            LocalNews.sort();
+            console.log("Fetched " + LocalNews.length + " local news sites.");
+        }).then(compileWhitelist);
     });
-
 };
 
 var saveOptions = function (options){
@@ -153,8 +165,19 @@ var onWhitelist = function (location) {
 };
 
 var compileWhitelist = function () {
+    console.log("Recompiling onWhitelist");
+
     var options = restoreOptions();
     var sites = options.sites;
+
+    if (options.include_local_news == true) {
+        for (var idx = 0; idx < LocalNews.length; idx++) {
+            var s = LocalNews[idx];
+            if (sites.indexOf(s) == -1) {
+                sites.push(s);
+            }
+        }
+    }
 
     var host_matcher = function (s) {
         if (s[0] == '.') {
@@ -405,7 +428,10 @@ var handleMessage = function (request, sender, response) {
 
     } else if (request.method == 'getTab') {
         response(Tabs.get(request.tabId));
-    
+
+    } else if (request.method == 'getLocalNews') {
+        response(LocalNews);
+
     } else if (request.method == 'whoami?') {
         response(sender.tab);
 
@@ -426,9 +452,7 @@ var handleMessage = function (request, sender, response) {
     }
 }
 
-var options = restoreOptions();
-compileWhitelist();
-fetch_site_settings();
+bootstrap();
 
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
     Tabs.remove(tabId);

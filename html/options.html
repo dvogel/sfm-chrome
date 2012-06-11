@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+      <title>Churnalism Options</title>
     <link rel="stylesheet" href="/css/jquery-ui-1.8.20.custom.css" type="text/css">
     <script src="/js/parseuri.js"></script>
     <script src="/js/jquery.js"></script>
@@ -147,6 +148,17 @@
               <br />
 
               <h1 class="ui-widget-header ui-corner-top">
+                  Check Local News Affiliates
+              </h1>
+              <div class="ui-widget ui-widget-content ui-corner-bottom">
+                  <p>We've also included a list of websites for local TV news affiliates. You can easily include all of these websites here. <a target="_blank" href="/html/localnews.html">Which sites are included?</a></p>
+                  <input type="checkbox" id="include-local-news" class="ui-corner-all" /> Include local news affiliates?
+              </div>
+
+              <br />
+              <br />
+
+              <h1 class="ui-widget-header ui-corner-top">
                   Check all News Articles
               </h1>
               <div class="ui-widget ui-widget-content ui-corner-bottom">
@@ -157,8 +169,8 @@
               <br />
               <br />
 
+              <span id="auto-save">These settings will save automatically.</span>
               <button id="reset">Revert to defaults</button>
-              <button id="save">Save now</button>
           </div>
 
           <div class="clear"></div>
