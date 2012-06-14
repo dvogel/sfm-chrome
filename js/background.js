@@ -316,6 +316,9 @@ var checkForValidUrl = function (tab) {
         return;
 
     var loc = parseUri(tab.get('url'));
+    if (loc.path == '/')
+        return;
+
     if (onWhitelist({'host': loc.host, 'pathname': loc.path})) {
         chrome.pageAction.show(tab.get('id'));
         chrome.pageAction.setPopup({'tabId': tab.get('id'), 'popup': ''});
