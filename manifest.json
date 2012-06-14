@@ -1,6 +1,6 @@
 {
   "name": "Churnalism",
-  "version": "0.9",
+  "version": "0.9.1",
   "description": "Check news articles for press release influence.",
   "background_page": "html/background.html",
   "options_page": "html/options.html",
