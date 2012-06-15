@@ -88,6 +88,7 @@ var defaultOptions = {
         "www.chicagotribune.com",
         ".cnn.com",
         ".time.com",
+        ".starbulletin.com",
         "www.miamiherald.com",
         "www.startribune.com",
         "www.newsday.com",
@@ -357,6 +358,7 @@ var requestIFrameInjection = function (chromeTab) {
     with_best_search_result(tab.get('article_text'), search_result, function(best_match){
         var req = {
             'method': 'injectIFrame',
+            'loading_url': chrome.extension.getURL('/html/loadingwait.html'),
             'url': comparisonUrl(search_result.uuid,
                                  best_match.doctype,
                                  best_match.docid)
@@ -407,6 +409,7 @@ var handleMessage = function (request, sender, response) {
                         var req = {
                             'method': 'injectWarningRibbon',
                             'src': options.search_server + Params['WARNING_RIBBON_SRC'],
+                            'loading_url': chrome.extension.getURL('/html/loadingwait.html'),
                             'match': {
                                 'url': comparisonUrl(result.uuid,
                                                      best_match.doctype,
@@ -453,6 +456,15 @@ var handleMessage = function (request, sender, response) {
             });
             response(tabs);
         });
+
+    } else if (request.method == 'reportTextProblem') {
+        var options = restoreOptions();
+        var tab = Tabs.get(request.tabId);
+        var search_result = tab.get('search_result');
+        if (search_result != null) {
+            var url = options.search_server + '/sidebyside/__UUID__/textproblem/'.replace('__UUID__', search_result.uuid);
+            chrome.tabs.create({'url': url});
+        }
 
     } else if (request.method == 'getTab') {
         response(Tabs.get(request.tabId));

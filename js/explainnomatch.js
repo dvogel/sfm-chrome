@@ -61,6 +61,10 @@
             $("#show-text").show();
         });
 
+        $("#text-is-wrong").click(function(event){
+            chrome.extension.sendRequest({'method': 'reportTextProblem', 'tabId': query_params['tabId']});
+        });
+
         // The pageAction popup window does not automatically resize itself
         // to fit the content. This triggers a re-draw.
         setTimeout(function(){

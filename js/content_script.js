@@ -5,7 +5,7 @@ var standardize_quotes = function (text, leftsnglquot, rightsnglquot, leftdblquo
                .replace(/[\u0022\u201D"]/g, rightdblquot);
 };
 
-var inject_comparison_iframe = function (url) {
+var inject_comparison_iframe = function (url, loading_url) {
     var overlay = $("#churnalism-overlay");
     if (overlay.length == 0) {
         var mask = $('<div id="churnalism-mask">\r\n</div>');
@@ -16,7 +16,7 @@ var inject_comparison_iframe = function (url) {
         overlay_frame.appendTo(overlay);
         overlay.appendTo("body");
 
-        overlay_frame.attr('src', url);
+        overlay_frame.attr('src', loading_url);
 
         var close_overlay = function (click) {
             $("#churnalism-mask").fadeOut(function(){ $("#churnalism-mask").remove(); });
@@ -38,6 +38,10 @@ var inject_comparison_iframe = function (url) {
 
         overlay.fadeIn();
         mask.fadeIn();
+
+        setTimeout(function(){
+            overlay_frame.attr('src', url);
+        }, 250);
     } else {
         $("#churnalism-iframe").remove();
         var overlay_frame = $('<iframe id="churnalism-iframe"></iframe>');
@@ -52,7 +56,7 @@ var handleMessage = function (request, sender, response) {
         console.log(request.message);
 
     } else if (request.method == 'injectIFrame') {
-        inject_comparison_iframe(request.url);
+        inject_comparison_iframe(request.url, request.loading_url);
 
     } else if (request.method == 'injectWarningRibbon') {
         $("#churnalism-ribbon").remove();
@@ -65,7 +69,7 @@ var handleMessage = function (request, sender, response) {
             if (event.data == 'dismiss_churnalism_ribbon') {
                 $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
             } else if (event.data == 'show_churnalism_comparison') {
-                inject_comparison_iframe(request.match.url);
+                inject_comparison_iframe(request.match.url, request.loading_url);
                 $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
             }
         }, false);
