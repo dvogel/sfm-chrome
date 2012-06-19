@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+      <title>Churnalism Options</title>
     <link rel="stylesheet" href="/css/jquery-ui-1.8.20.custom.css" type="text/css">
     <script src="/js/parseuri.js"></script>
     <script src="/js/jquery.js"></script>
@@ -83,6 +84,7 @@
       .ui-widget-content p { font-size: 12px; }
       */
       #search-server-header, #search-server-content { display: none; }
+      ul#search-server-params { padding-left: 2em; list-style-type: square; }
     </style>
   </head>
   <body>
@@ -135,11 +137,20 @@
                   Privacy
               </h1>
               <div id="privacy" class="ui-widget ui-widget-content ui-corner-bottom">
-                  <p>This extension submits the text and title of the news articles you read to the Churnalism servers. This is limited to the set of websites listed below. We do this because it is required by the underlying technology. Any identifying information is discarded.</p>
-
-                  <p>While the text and title of the article must be submitted in order to provide you search results, we would also like to submit the URL of the page. This allows us to determine how accurately our extension extracts the article text and reduces our server load by relying on caching techniques that speed up the rest of the web. This is also limited to the websites listed below and we do not associate any identifying information with the URL, so we cannot track your browsing history.</p>
+                  <p>When the Churnalism extension examines a news article it submits the article text and the URL to our servers. Pairing the text and the URL allows us to deliver more accurate results. We do not track your browsing history but we do want you to feel comfortable using our tools so you are able to disable URL submission by unchecking this box.</p>
 
                   <input type="checkbox" id="submit-urls" /> Submit URLs of news articles?
+              </div>
+
+              <br />
+              <br />
+
+              <h1 class="ui-widget-header ui-corner-top">
+                  Check Local News Affiliates
+              </h1>
+              <div class="ui-widget ui-widget-content ui-corner-bottom">
+                  <p>We've also included a list of websites for local TV news affiliates. You can easily include all of these websites here. <a target="_blank" href="/html/localnews.html">Which sites are included?</a></p>
+                  <input type="checkbox" id="include-local-news" class="ui-corner-all" /> Include local news affiliates?
               </div>
 
               <br />
@@ -156,22 +167,33 @@
               <br />
               <br />
 
-              <h1 class="ui-widget-header ui-corner-top" id="search-server-header">
-                  Search Server
-              </h1>
-              <div class="ui-widget ui-widget-content ui-corner-bottom" id="search-server-content">
-                  <p>Search Server:</p> <input type="text" id="search-server" class="ui-corner-all" />
-              </div>
-
-              <br />
-              <br />
-
+              <span id="auto-save">These settings will save automatically.</span>
               <button id="reset">Revert to defaults</button>
-              <button id="save">Save now</button>
+          </div>
+
+          <div class="clear"></div>
+
+          <h1 class="ui-widget-header ui-corner-top" id="search-server-header">
+              Search Server
+          </h1>
+          <div class="ui-widget ui-widget-content ui-corner-bottom" id="search-server-content">
+              <p>Search Server:</p> <input type="text" id="search-server" class="ui-corner-all" />
+
+              <br>
+              <br>
+
+              <b>Paramters:</b>
+              <ul id="search-server-params">
+              </ul>
           </div>
 
           <div class="clear"></div>
       </div>
+    <script id="server-param-list-item" type="text/x-jquery-tmpl">
+        <li>
+        <b>${key}:</b> ${value}
+        </li>
+    </script>
     <script id="site-list-item" type="text/x-jquery-tmpl">
 		<tr>
 			<td>${url}</td>

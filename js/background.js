@@ -1,4 +1,14 @@
-var MINIMUM_COVERAGE = 0.0;
+// These thresholds default to impossibly high values
+// which effectively disable the extension unless the
+// values can be updated by bootstrap.
+var Params = {
+    'MINIMUM_COVERAGE_PCT': Number.MAX_VALUE,
+    'MINIMUM_COVERAGE_CHARS': Number.MAX_VALUE,
+    'WARNING_RIBBON_SRC': '/sidebyside/chrome/ribbon/'
+};
+
+var LocalNews = [
+];
 
 Backbone.sync = function(method, model, options) {
     /* Do nothing */
@@ -41,23 +51,34 @@ var TabStates = Backbone.Collection.extend({
 
 var Tabs = new TabStates();
 
-
 var defaultOptions = {
     sites: [
+        "www.google.com/hostednews/...",
         "www.reuters.com",
         "hosted.ap.org",
         ".nytimes.com",
         "www.washingtonpost.com",
         "www.ft.com",
+        "www.economist.com",
         "www.bbc.co.uk/news/...",
+        "news.nationalgeographic.com/news/...",
+        "www.theglobeandmail.com",
+        "news.sky.com",
+        "www.voanews.com",
+        "www.wnd.com",
         "www.guardian.co.uk",
         "www.dailymail.co.uk",
         "www.telegraph.co.uk",
         "www.prnewswire.com",
         "www.pcmag.com",
+        "www.theatlantic.com",
         "online.wsj.com",
-        "www.usatoday.com",
+        ".usatoday.com",
+        "www.usnews.com/news/...",
         "www.latimes.com",
+        "latimesblogs.latimes.com",
+        ".sfgate.com",
+        "www.nj.com/news/...",
         "www.mercurynews.com",
         "www.nypost.com",
         "www.nydailynews.com",
@@ -67,38 +88,102 @@ var defaultOptions = {
         "www.chicagotribune.com",
         ".cnn.com",
         ".time.com",
+        ".starbulletin.com",
         "www.miamiherald.com",
         "www.startribune.com",
         "www.newsday.com",
         "www.azcentral.com",
+        "www.thestar.com",
         "www.chron.com",
         "www.suntimes.com",
         "www.dallasnews.com",
         "www.mcclatchydc.com",
+        "www.boston.com",
+        "www.bostonherald.com",
         "www.scientificamerican.com",
         "www.sciencemag.org",
         "www.newscientist.com",
+        "www.npr.org",
+        "www.techcrunch.com",
+        "www.cbc.ca/news/...",
+        "www.newsmax.com",
+        "www.breitbart.com",
+        ".politico.com",
+        "thehill.com",
+        ".rollcall.com",
+        ".talkingpointsmemo.com",
+        "www.bloomberg.com",
+        ".businessweek.com",
+        "www.forbes.com",
+        "www.csmonitor.com",
+        "timesofindia.indiatimes.com",
+        ".aljazeera.com",
+        "www.theage.com.au",
+        "news.smh.com.au",
+        "news.yahoo.com",
+        "news.cnet.com",
+        "www.cnbc.com",
+        ".cbsnews.com",
+        "abcnews.go.com",
+        ".msnbc.msn.com",
+        ".foxnews.com",
+        ".huffingtonpost.com"
     ],
+    include_local_news: true,
     use_generic_news_pattern: false,
-    search_server: 'http://churnalism.sunlightfoundation.com:8080',
-    submit_urls: false
+    search_server: 'http://churnalism.sunlightfoundation.com',
+    submit_urls: true
 };
 
-function saveOptions(options){
+var bootstrap = function (callback) {
+    var options = restoreOptions();
+    
+    var url = options.search_server + '/sidebyside/chrome/parameters/';
+    $.ajax({
+        "type": "GET",
+        "url": url
+    }).success(function(result){
+        for (var key in result) {
+            var key1 = key.toUpperCase();
+            if (Params.hasOwnProperty(key1)) {
+                var current_value = Params[key1];
+                var new_value = result[key];
+                if (typeof(current_value) == typeof(new_value)) {
+                    console.log('Accepting remote setting', key1, current_value, new_value);
+                    Params[key1] = result[key];
+                }
+            }
+        }
+    
+        // Update these settings same time tomorrow
+        setTimeout(bootstrap, 86400000);
+    }).error(function(){
+        // Try again in an hour
+        setTimeout(bootstrap, 3600000);
+    }).then(function(){
+        $.get(options.search_server + '/static/chromeext/localnews.json').success(function(result){
+            LocalNews = result;
+            LocalNews.sort();
+            console.log("Fetched " + LocalNews.length + " local news sites.");
+        }).then(compileWhitelist);
+    });
+};
+
+var saveOptions = function (options){
     localStorage.setItem("options",JSON.stringify(options));
     compileWhitelist();
     return options;
-}
+};
 
-function restoreOptions(){
+var restoreOptions = function (){
     var options=JSON.parse(localStorage.getItem("options"));
     return (options==null)?resetOptions():options;
-}
+};
 
-function resetOptions(){
+var resetOptions = function (){
     localStorage.setItem("options",JSON.stringify(defaultOptions));
     return defaultOptions;
-}
+};
 
 var onWhitelist = function (location) {
     // This function is replaced by compileWhitelist
@@ -106,8 +191,19 @@ var onWhitelist = function (location) {
 };
 
 var compileWhitelist = function () {
+    console.log("Recompiling onWhitelist");
+
     var options = restoreOptions();
     var sites = options.sites;
+
+    if (options.include_local_news == true) {
+        for (var idx = 0; idx < LocalNews.length; idx++) {
+            var s = LocalNews[idx];
+            if (sites.indexOf(s) == -1) {
+                sites.push(s);
+            }
+        }
+    }
 
     var host_matcher = function (s) {
         if (s[0] == '.') {
@@ -192,14 +288,10 @@ var executeScriptsSynchronously = function (tab_id, files, callback) {
     }
 };
 
-var coverage = function (text, row) {
-    var chars_matched = 0;
-    jQuery.each(row['fragments'], function(idx, fragment){
-        chars_matched += fragment[2];
-    });
-    var pct_of_match = chars_matched / row['characters'];
-    var pct_of_source = chars_matched / text.length;
-    return Math.max(pct_of_match, pct_of_source);
+
+var sufficient_coverage = function (row) {
+    return ((row['coverage'][0] >= Params['MINIMUM_COVERAGE_CHARS']) 
+            && (Math.round(row['coverage'][1]) >= Params['MINIMUM_COVERAGE_PCT']));
 };
 
 var select_search_result = function (search_results, predicate) {
@@ -215,13 +307,19 @@ var select_search_result = function (search_results, predicate) {
 };
 
 var with_best_search_result = function (text, results, next) {
-    var row_coverage = function(row){ return coverage(text, row); };
-    var best = select_search_result(results, row_coverage);
+    var row_coverage_and_density = function(row){ return row['coverage'][0] + row['density']; };
+    var best = select_search_result(results, row_coverage_and_density);
     next(best);
 };
     
 var checkForValidUrl = function (tab) {
+    if (Params['MINIMUM_COVERAGE_PCT'] == Number.MAX_VALUE)
+        return;
+
     var loc = parseUri(tab.get('url'));
+    if (loc.path == '/')
+        return;
+
     if (onWhitelist({'host': loc.host, 'pathname': loc.path})) {
         chrome.pageAction.show(tab.get('id'));
         chrome.pageAction.setPopup({'tabId': tab.get('id'), 'popup': ''});
@@ -229,10 +327,20 @@ var checkForValidUrl = function (tab) {
         chrome.tabs.insertCSS(tab.get('id'), {file: "/css/churnalism.css"});
         executeScriptsSynchronously(tab.get('id'), [
             "/js/jquery-1.7.1.min.js",
+            "/js/jquery-ui-1.8.20.custom.min.js",
             "/js/extractor.js",
             "/js/content_script.js"
         ]);
     }
+};
+
+var comparisonUrl = function (uuid, doctype, docid) {
+    var options = restoreOptions();
+    var url = options.search_server + '/sidebyside/chrome/__UUID__/__DOCTYPE__/__DOCID__/';
+    url = url.replace('__UUID__', uuid)
+             .replace('__DOCTYPE__', doctype)
+             .replace('__DOCID__', docid);
+    return url;
 };
 
 var requestIFrameInjection = function (chromeTab) {
@@ -250,9 +358,10 @@ var requestIFrameInjection = function (chromeTab) {
     with_best_search_result(tab.get('article_text'), search_result, function(best_match){
         var req = {
             'method': 'injectIFrame',
-            'url': url.replace('__UUID__', search_result['uuid'])
-                      .replace('__DOCTYPE__', best_match['doctype'])
-                      .replace('__DOCID__', best_match['docid'])
+            'loading_url': chrome.extension.getURL('/html/loadingwait.html'),
+            'url': comparisonUrl(search_result.uuid,
+                                 best_match.doctype,
+                                 best_match.docid)
         };
         chrome.tabs.sendRequest(tab.get('id'), req);
     });
@@ -291,15 +400,28 @@ var handleMessage = function (request, sender, response) {
                 "url": url,
                 "data": query_params
             }).success(function(result){
-                with_best_search_result(result.text, result, function(best_match){
-                    if (best_match && (coverage(result.text, best_match) >= MINIMUM_COVERAGE)) {
+                with_best_search_result(request.text, result, function(best_match){
+                    if (best_match && sufficient_coverage(best_match)) {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
                         chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
                         chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
+
+                        var req = {
+                            'method': 'injectWarningRibbon',
+                            'src': options.search_server + Params['WARNING_RIBBON_SRC'],
+                            'loading_url': chrome.extension.getURL('/html/loadingwait.html'),
+                            'match': {
+                                'url': comparisonUrl(result.uuid,
+                                                     best_match.doctype,
+                                                     best_match.docid)
+                            }
+                        };
+                        chrome.tabs.sendRequest(sender.tab.id, req);
+
                     } else {
                         chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
                         chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
-                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
+                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html?tabId=" + sender.tab.id});
                     }
                 });
                 tab.set({'search_result': result});
@@ -313,7 +435,7 @@ var handleMessage = function (request, sender, response) {
             // tabs.onUpdated event to signal when to extract the article text. Unfortunately this leads
             // to multiple article extractions and we don't want to make a network request for each.
             with_best_search_result(tab.get('article_text'), prior_result, function(best_match){
-                if (best_match && (coverage(tag.get('article_text')) >= MINIMUM_COVERAGE)) {
+                if (best_match && sufficient_coverage(best_match)) {
                     chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
                     chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
                 } else {
@@ -323,7 +445,8 @@ var handleMessage = function (request, sender, response) {
                 }
             });
         }
-    } else if (request.method == 'getAllTabs') {
+
+    } else if (request.method == 'getAllBrowserTabs') {
         chrome.windows.getAll({populate: true}, function(windows){
             var tabs = [];
             jQuery(windows).each(function(winIdx, win){
@@ -334,8 +457,26 @@ var handleMessage = function (request, sender, response) {
             response(tabs);
         });
 
+    } else if (request.method == 'reportTextProblem') {
+        var options = restoreOptions();
+        var tab = Tabs.get(request.tabId);
+        var search_result = tab.get('search_result');
+        if (search_result != null) {
+            var url = options.search_server + '/sidebyside/__UUID__/textproblem/'.replace('__UUID__', search_result.uuid);
+            chrome.tabs.create({'url': url});
+        }
+
+    } else if (request.method == 'getTab') {
+        response(Tabs.get(request.tabId));
+
+    } else if (request.method == 'getLocalNews') {
+        response(LocalNews);
+
     } else if (request.method == 'whoami?') {
         response(sender.tab);
+
+    } else if (request.method == "getParameters") {
+        response(Params);
 
     } else if (request.method == "getOptions") {
         response(restoreOptions());
@@ -351,8 +492,7 @@ var handleMessage = function (request, sender, response) {
     }
 }
 
-var options = restoreOptions();
-compileWhitelist();
+bootstrap();
 
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
     Tabs.remove(tabId);

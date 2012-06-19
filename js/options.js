@@ -33,6 +33,7 @@ $(function() {
             search_server: searchServer(),
             submit_urls: submitUrls(),
             use_generic_news_pattern: useGenericNewsPattern(),
+            include_local_news: includeLocalNews(),
             sites: []
         };
         $('#sites-list tbody td:first-child').each(function(i,el){
@@ -47,7 +48,8 @@ $(function() {
             submitUrls(options['submit_urls']);
             searchServer(options['search_server']);
             useGenericNewsPattern(options['use_generic_news_pattern']);
-            chrome.extension.sendRequest({method:"getAllTabs"}, function(tabs){
+            includeLocalNews(options['include_local_news']);
+            chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
                 displayTabUrls(tabs, options);
             });
         });
@@ -99,6 +101,16 @@ $(function() {
         }
     }
 
+    function includeLocalNews (val) {
+        if (val == null) {
+            return ($("input#include-local-news")[0].checked == true);
+        } else if (val == true) {
+            $("input#include-local-news")[0].checked = true;
+        } else {
+            $("input#include-local-news")[0].checked = undefined;
+        }
+    }
+
     function submitUrls (val) {
         if (val == null) {
             return ($("input#submit-urls")[0].checked == true);
@@ -114,6 +126,14 @@ $(function() {
             return $("input#search-server").val();
         } else {
             $("input#search-server").val(val);
+            $("ul#search-server-params").empty();
+            chrome.extension.sendRequest({'method': 'getParameters'}, function(params){
+                var items = [];
+                for (var key in params) {
+                    items.push({'key': key, 'value': params[key]});
+                }
+                $("#server-param-list-item").tmpl(items).appendTo("ul#search-server-params");
+            });
         }
     }
 
@@ -244,6 +264,22 @@ $(function() {
         });
 
         displayOptions();
+
+        // Not really secret
+        var secret_string = "iddqd";
+        var keypress_history = [];
+        $("body").keypress(function(event){
+            if (event.srcElement == this) {
+                keypress_history.push(event.charCode);
+                if (keypress_history.length > secret_string.length) {
+                    keypress_history.shift();
+                }
+                var keypress_history_string = String.fromCharCode.apply(null, keypress_history);
+                if (keypress_history_string == secret_string) {
+                    $("#search-server-header, #search-server-content").show();
+                }
+            }
+        });
 
         $(window).unload(function(){
             updateOptions();

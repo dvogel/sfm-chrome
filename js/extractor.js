@@ -32,7 +32,7 @@ var textRenderer = function (node) {
 	var rope = [];
     while (walker.nextNode()) {
         if (walker.currentNode.nodeType == 3) {
-            var text = walker.currentNode.textContent;
+            var text = walker.currentNode.textContent.replace(/[ \t\s\r\n]+/g, ' ');
             var trimmed = text.trimRight();
             if (text != trimmed) {
                 text = trimmed + ' ';
@@ -62,10 +62,10 @@ ArticleExtractor = function (NS) {
     var MIN_LEN = 25;
 
     var htmlElements = /^(a|abbr|address|area|article|aside|audio|b|base|bdi|bdo|blockquote|body|br|button|canvas|caption|cite|code|col|colgroup|command|datalist|dd|del|details|dfn|div|dl|dt|em|embed|fieldset|figcaption|figure|footer|form|h1, h2, h3, h4, h5, h6|head|header|hgroup|hr|html|i|iframe|img|input|ins|kbd|keygen|label|legend|li|link|map|mark|menu|meta|meter|nav|noscript|object|ol|optgroup|option|output|p|param|pre|progress|q|rp|rt|ruby|s|samp|script|section|select|small|source|span|strong|style|sub|summary|sup|table|tbody|td|textarea|tfoot|th|thead|time|title|tr|track|u|ul|var|video|wbr)$/i;
-    var unlikelyCandidates = /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i;
+    var unlikelyCandidates = /ie6nomore|combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i;
     var okMaybeItsACandidate = /and|article|body|column|main|shadow/i;
-    var classWeightPositive = /article|body|content|entry|hentry|main|page|pagination|post|text|blog|story/i;
-    var classWeightNegative = /combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget/i;
+    var classWeightPositive = /article|body|content|entry|hentry|main|page|pagination|post|\btext\b|blog|story/i;
+    var classWeightNegative = /combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget|hidden/i;
     var divToPElements = /<(a|blockquote|dl|div|img|ol|p|pre|table|ul)/i;
 
     var _describe = function (node, depth) {
@@ -163,7 +163,9 @@ ArticleExtractor = function (NS) {
         var remove_unlikely_candidates = function () {
             jQuery("*", doc).each(function(idx, node){
                 var attrstr = jQuery(node).attr('class') + ' ' + jQuery(node).attr('id');
-                if (unlikelyCandidates.test(attrstr) && (! okMaybeItsACandidate.test(attrstr)) && (node.tagName != 'BODY')) {
+                if ((attrstr.search(unlikelyCandidates) >= 0)
+                    && (attrstr.search(okMaybeItsACandidate) == -1)
+                    && (node.tagName != 'BODY')) {
                     jQuery(node).remove();
                 }
             });
@@ -186,7 +188,6 @@ ArticleExtractor = function (NS) {
                 case 'DD':
                 case 'DT':
                 case 'LI':
-                case 'FORM':
                     return -3;
 
                 case 'H1':
@@ -209,19 +210,23 @@ ArticleExtractor = function (NS) {
             var score = 0;
 
             if ((classstr != null) && (classstr.length > 0)) {
-                if (classstr.search(classWeightNegative) >= 0) 
+                if (classstr.search(classWeightNegative) >= 0)  {
                     score -= 25;
+                }
                 
-                if (classstr.search(classWeightPositive) >= 0)
+                if (classstr.search(classWeightPositive) >= 0) {
                     score += 25;
+                }
             }
 
             if ((idstr != null) && (idstr.length > 0)) {
-                if (idstr.search(classWeightNegative) >= 0)
+                if (idstr.search(classWeightNegative) >= 0) {
                     score -= 25;
+                }
 
-                if (idstr.search(classWeightPositive) >= 0)
+                if (idstr.search(classWeightPositive) >= 0) {
                     score += 25;
+                }
             }
 
             return score;
@@ -265,7 +270,7 @@ ArticleExtractor = function (NS) {
                 grandparent_node.extractionScore += (content_score / 2);
             };
 
-            jQuery("P, PRE, TD", doc).each(function(idx, node){ scorer(node); });
+            jQuery("P, PRE, TD, FORM", doc).each(function(idx, node){ scorer(node); });
 
             jQuery("*", doc).each(function(idx, node){
                 if (node.extractionScore == null)
@@ -273,10 +278,11 @@ ArticleExtractor = function (NS) {
                 node.extractionScore *= (1 - link_density(node));
 
                 if (((best_candidate == null) && (node.extractionScore != null)) || (node.extractionScore >= best_candidate.extractionScore)) {
+                    console.log('best candidate, with score', node.extractionScore, ' is now ', node);
                     best_candidate = node;
                 }
             });
-            if (best_candidate == null)
+            if (best_candidate == null) 
                 throw 'ArticleExtractor: No candidate found!';
         };
 
@@ -323,10 +329,7 @@ ArticleExtractor = function (NS) {
         };
 
         var sanitize_article = function () {
-            remove_elements(jQuery('object', article_elem));
-            remove_elements(jQuery('embed', article_elem));
-            remove_elements(jQuery('iframe', article_elem));
-            remove_elements(jQuery('noscript', article_elem));
+            remove_elements(jQuery('object, embed, iframe, noscript', article_elem));
 
             jQuery("*", article_elem).each(function(idx, node){
                 if (/h\d/i.test(node.tagName)) {
@@ -336,9 +339,14 @@ ArticleExtractor = function (NS) {
                     }
                 }
 
-                if (/form|iframe|textarea/i.test(node.tagName)) {
-                    jQuery(node).remove();
-                    return;
+                if (/form/i.test(node.tagName)) {
+                    // Ideally we would just remove all form elements.
+                    // Unfortunately there are sites that use forms
+                    // to hide content from IE6.
+                    if (jQuery(node).text().length < 900) {
+                        jQuery(node).remove();
+                        return;
+                    }
                 }
 
                 if (/ul|ol/i.test(node.tagName)) {
@@ -443,8 +451,12 @@ ArticleExtractor = function (NS) {
             } 
         };
 
-        remove_elements(jQuery('script', doc));
+        remove_elements(jQuery('script, noscript', doc));
         remove_elements(jQuery('style', doc));
+        remove_elements(jQuery('textarea, select, option, button', doc));
+        remove_unlikely_candidates();
+        // Remove hidden elements
+        jQuery(doc).remove('*:hidden, P:hidden, DIV:hidden, PRE:hidden, TD:hidden');
         fix_misused_divs();
         score_paragraphs();
         extract_article();
