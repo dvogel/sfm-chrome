@@ -16,9 +16,17 @@ which git >/dev/null || die "No git program found."
 pushd . >/dev/null
 summline=`git show --oneline`
 sha1=${summline%% *}
-git clone . ../churnalism-ext-$sha1 || die "Failed to clone git repository."
+zipfile="churnalism-ext-${sha1}.zip"
+n=0
+while [ -e "../${zipfile}.${n}" ]; do
+    n=$(($n + 1))
+done
+mv -v "../${zipfile}" "../${zipfile}.${n}"
+git archive --format zip --output "../${zipfile}" -9 master || die "Failed to create zip archive."
 cd ..
-bash "$crxmake" churnalism-ext-$sha1 "$keypath"
+zip -d "${zipfile}" .gitignore crxmake.sh package.sh
+ls -1sh "$zipfile"
+bash "$crxmake" "$zipfile" "$keypath"
 popd >/dev/null
 
 
