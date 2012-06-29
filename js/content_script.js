@@ -92,12 +92,21 @@ jQuery(document).ready(function(){
 
     jQuery('iframe').each(function(idx, iframe){
         var src = jQuery(iframe).attr('src');
-        if (/wmode=opaque/i.test(src)) {
-            src = src.replace(/wmode=opaque/i, 'wmode=transparent');
-        } else if (src != null) {
-            src = src + ((src.indexOf('?') == -1) ? '?' : '&') + 'wmode=transparent';
-        } 
-        jQuery(iframe).attr('src', src);
+        // We assume most object/embed tags are flash.
+        var contains_flash = $('object, embed', iframe.contentDocument).length > 0;
+        if (contains_flash) {
+            if (/wmode=opaque/i.test(src)) {
+                src = src.replace(/wmode=opaque/i, 'wmode=transparent');
+                console.log('Replacing wmode=opaque for ' + src);
+                jQuery(iframe).attr('src', src);
+            } else if (src != null) {
+                src = src + ((src.indexOf('?') == -1) ? '?' : '&') + 'wmode=transparent';
+                console.log('appending wmode=transparent for ' + src);
+                jQuery(iframe).attr('src', src);
+            }
+        } else {
+            console.log('iframe found but it does not seem to contain any flash objects ' + src);
+        }
     });
 
     ArticleExtractor(window);
