@@ -6,8 +6,7 @@
     <script src="/js/parseuri.js"></script>
     <script src="/js/jquery.js"></script>
     <script src="/js/jquery.ui.js"></script>
-    <script src="/js/jquery.tmpl.js"></script>
-	<script src="/js/jquery.tablesorter.min.js"></script>
+    <script src="/js/ashe.js"></script>
     <script src="/js/options.js"></script>
     <style type="text/css">
         /*  HTML5 ✰ Boilerplate  */
@@ -189,16 +188,12 @@
 
           <div class="clear"></div>
       </div>
-    <script id="server-param-list-item" type="text/x-jquery-tmpl">
+    <script id="server-params-tmpl" type="text/x-jquery-tmpl">
+        {% for param in params %}
         <li>
-        <b>${key}:</b> ${value}
+        <b>{{ param.name }}:</b> {{ param.value }}
         </li>
-    </script>
-    <script id="site-list-item" type="text/x-jquery-tmpl">
-		<tr>
-			<td>${url}</td>
-			<td><button class="delete">Delete</button></td>
-		</tr>
+        {% endfor %}
     </script>
 	<script id="sites-list-tmpl" type="text/x-jquery-tmpl">
 		<table id="sites-list" class="fixedHeader">
@@ -209,15 +204,15 @@
 				</tr>
 			</thead>
 			<tbody class="scrollable">
+                {% for site in sites %}
+                <tr>
+                    <td>{{ site }}</td>
+                    <td><button class="delete">Delete</button></td>
+                </tr>
+                {% endfor %}
 			</tbody>
 		</table>
 	</script>
-    <script id="quickadd-list-item-tmpl" type="text/x-jquery-tmpl">
-		<tr>
-			<td>${domain}</td>
-			<td><button class="add-to-whitelist">Add to list</button></td>
-		</tr>
-    </script>
     <script id="quickadd-list-tmpl" type="text/x-jquery-tmpl">
         <table id="quickadd-list" class="fixedHeader">
             <thead>
@@ -227,6 +222,12 @@
                 </tr>
             </thead>
             <tbody class="scrollable">
+                {% for domain in domains %}
+                <tr>
+                    <td>{{ domain }}</td>
+                    <td><button class="add-to-whitelist">Add to list</button></td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </script>

@@ -487,6 +487,23 @@ var handleMessage = function (request, sender, response) {
     } else if (request.method == "resetOptions") {
         response(resetOptions());
 
+    } else if (request.method == "addToWhitelist") {
+        var options = restoreOptions();
+        if (options.sites.indexOf(request.site) == -1) {
+            options.sites.push(request.site);
+            saveOptions(options);
+        }
+        response(options);
+
+    } else if (request.method == "removeFromWhitelist") {
+        var options = restoreOptions();
+        var offset = options.sites.indexOf(request.site);
+        if (offset >= 0) {
+            options.sites.splice(offset, 1);
+            saveOptions(options);
+        }
+        response(options);
+
     } else if (request.method == "log") {
         console.log(request.args);
     }

@@ -12,20 +12,14 @@ $(function() {
     }());
 
     function renderList (options) {
-        $("#sites-list").remove();
+        $("#sites-list-container #sites-list").remove();
 
-        var sites_list = $("#sites-list-tmpl").tmpl([{}]);
-        $("#sites-list-container").append(sites_list);
+        var sites_list_tmpl = $("#sites-list-tmpl").html();
 
-        var item_contexts = options.sites.map(function(site){ return {'url': site}; });
-        $('#sites-list tbody').empty().append($("#site-list-item").tmpl(item_contexts));
+        options.sites.sort();
+        var rendered = Ashe.parse(sites_list_tmpl, { sites: options.sites });
 
-        $("#sites-list").tablesorter({
-            sortList: [[0,0]], 
-            headers: { 
-                0: { sorter: 'text' } 
-            }
-        });
+        $("#sites-list-container").append($(rendered));
     }
 
     function updateOptions(){
@@ -79,16 +73,10 @@ $(function() {
                 return prev;
             }, []);
 
-        $("#quickadd-list-tmpl").tmpl([{}]).appendTo('#quickadd-list-container');
-        var item_contexts = domains.map(function(domain){ return {'domain': domain}; });
-        var items = $('#quickadd-list-item-tmpl').tmpl(item_contexts).appendTo("#quickadd-list tbody");
-
-        $("#quickadd-list").tablesorter({
-            sortList: [[0,0]], 
-            headers: { 
-                0: { sorter: 'text' } 
-            }
-        });
+        domains.sort();
+        var quickadd_list_tmpl = $("#quickadd-list-tmpl").html();
+        var rendered = Ashe.parse(quickadd_list_tmpl, { domains: domains });
+        $("#quickadd-list-container").empty().append($(rendered));
     }
 
     function useGenericNewsPattern (val) {
@@ -130,9 +118,11 @@ $(function() {
             chrome.extension.sendRequest({'method': 'getParameters'}, function(params){
                 var items = [];
                 for (var key in params) {
-                    items.push({'key': key, 'value': params[key]});
+                    items.push({'name': key, 'value': params[key]});
                 }
-                $("#server-param-list-item").tmpl(items).appendTo("ul#search-server-params");
+                var server_params_tmpl = $("#server-params-tmpl").html();
+                var rendered = Ashe.parse(server_params_tmpl, { params: items });
+                $("ul#search-server-params").empty().append($(rendered));
             });
         }
     }
@@ -161,12 +151,13 @@ $(function() {
             $("#host-warning").text("Pattern is invalid.");
         }
 
-        chrome.extension.sendRequest({method:"getOptions"}, function(options){
-            if (options.sites.indexOf(pattern) == -1) {
-                $("#sites-list").prepend($("#site-list-item").tmpl({url: pattern}));
+        chrome.extension.sendRequest({method: "addToWhitelist", site: pattern}, function(options){
+            chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
+                renderList(options);
+                displayTabUrls(tabs, options);
                 $("#newSite input").val("");
-                updateOptions();
-            }
+                $("#newSite input").trigger("change");
+            });
         });
     };
 
@@ -252,15 +243,25 @@ $(function() {
 
         $(".add-to-whitelist").live('click', function(){
             var pattern = $(this).parent().siblings('td:first-child').text();
-            $(this).parent().parent().remove();
-            $("#sites-list").prepend($("#site-list-item").tmpl({url: pattern}));
-            updateOptions();
+            var that = this;
+            chrome.extension.sendRequest({method: "addToWhitelist", site: pattern}, function(options){
+                console.log(options);
+                $(that).parent().parent().remove();
+                renderList(options);
+            });
             $("#newSite input").val("");
         });
 
         $(".delete").live('click',function(){
-            $(this).parent().parent().remove();
-            updateOptions();
+            var site = $(this).parent().prev().text();
+            var that = this;
+            chrome.extension.sendRequest({method: "removeFromWhitelist", site: site}, function(options){
+                renderList(options);
+                $(that).parent().parent().remove();
+                chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
+                    displayTabUrls(tabs, options);
+                });
+            });
         });
 
         displayOptions();

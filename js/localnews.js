@@ -16,13 +16,15 @@ $(function() {
             if ((local_news == null) || (local_news.length == 0)) {
                 $("#no-affiliates").hide();
             } else {
-                var item_contexts = local_news.map(function(pattern){
-                    return {'url': pattern.replace(/^\./, '')};
+                local_news.sort();
+                var urls = local_news.map(function(pattern){
+                    return pattern.replace(/^\./, '');
                 });
 
-                var localnews_rows = $("#localnews-table-row-tmpl").tmpl(item_contexts);
+                var localnews_rows_tmpl = $("#localnews-table-rows-tmpl").html();
+                var rendered = Ashe.parse(localnews_rows_tmpl, {urls: urls});
 
-                $("#local-affiliates tbody").empty().append(localnews_rows);
+                $("#local-affiliates tbody").empty().append($(rendered));
                 $("#local-affiliates").show();
             }
         });

@@ -1,8 +1,11 @@
 {
+  "manifest_version": 2,
   "name": "Churnalism",
   "version": "0.9.4",
   "description": "Check news articles for press release influence.",
-  "background_page": "html/background.html",
+  "background": {
+    "page": "html/background.html"
+  },
   "options_page": "html/options.html",
   "page_action" :
   {
@@ -12,7 +15,9 @@
   "icons": {
              "16": "img/churnalism_128x128.png",
              "48": "img/churnalism_128x128.png",
-            "128": "img/churnalism_128x128.png" },
+            "128": "img/churnalism_128x128.png"
+  },
+  "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "permissions": [
     "webNavigation",
     "tabs", 
