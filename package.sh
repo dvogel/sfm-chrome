@@ -27,6 +27,7 @@ cd ..
 zip -d "${zipfile}" .gitignore crxmake.sh package.sh
 ls -1sh "$zipfile"
 bash "$crxmake" "$zipfile" "$keypath"
+rm "${zipfile}"
 popd >/dev/null
 
 
