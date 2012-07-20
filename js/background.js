@@ -161,7 +161,7 @@ var bootstrap = function (callback) {
         // Try again in an hour
         setTimeout(bootstrap, 3600000);
     }).then(function(){
-        $.get(options.search_server + '/static/chromeext/localnews.json').success(function(result){
+        $.get(options.search_server + '/static/localnews.json').success(function(result){
             LocalNews = result;
             LocalNews.sort();
             console.log("Fetched " + LocalNews.length + " local news sites.");
