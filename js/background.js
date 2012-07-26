@@ -312,6 +312,30 @@ var with_best_search_result = function (text, results, next) {
     next(best);
 };
     
+var explain_no_match = function (tabId) {
+    chrome.pageAction.setIcon({tabId: tabId, path: "/img/nonefound.png"});
+    chrome.pageAction.setTitle({tabId: tabId, title: "This page is Churnalism-free"});
+    chrome.pageAction.setPopup({tabId: tabId, popup: "/html/explainnomatch.html?tabId=" + tabId});
+};
+
+var optimistic_search = function (tab) {
+    var options = restoreOptions();
+    var uuid = UUID.uuid5(UUID.NAMESPACE_URL, tab.get('url'));
+    var search_url = options.search_server + '/api/search/' + uuid.toString() + '/';
+    $.ajax({type: "GET", url: search_url}).success(function(result){
+        tab.set({'search_result': result});
+        with_best_search_result(result.text, result, function(best_match){
+            if (best_match && sufficient_coverage(best_match)) {
+                requestRibbonInjection(tab.get('id'), result.uuid, best_match.doctype, best_match.docid);
+            } else {
+                explain_no_match(tab.get('id'));
+            }
+        });
+    }).error(function(xhr, text_status, error){
+        chrome.tabs.sendRequest(tab.get('id'), {'method': 'extractArticle'});
+    });
+};
+
 var checkForValidUrl = function (tab) {
     if (Params['MINIMUM_COVERAGE_PCT'] == Number.MAX_VALUE)
         return;
@@ -343,6 +367,24 @@ var comparisonUrl = function (uuid, doctype, docid) {
     return url;
 };
 
+var requestRibbonInjection = function (tabId, uuid, doctype, docid) {
+    chrome.pageAction.setIcon({tabId: tabId, path: "/img/found.png"});
+    chrome.pageAction.setTitle({tabId: tabId, title: "Churnalism Alert!"});
+    chrome.pageAction.setPopup({tabId: tabId, popup: ""});
+    var options = restoreOptions();
+    var req = {
+        'method': 'injectWarningRibbon',
+        'src': options.search_server + Params['WARNING_RIBBON_SRC'],
+        'loading_url': chrome.extension.getURL('/html/loadingwait.html'),
+        'match': {
+            'url': comparisonUrl(uuid,
+                                 doctype,
+                                 docid)
+        }
+    };
+    chrome.tabs.sendRequest(tabId, req);
+};
+
 var requestIFrameInjection = function (chromeTab) {
     var tab = Tabs.get(chromeTab.id);
     if (tab == null) {
@@ -369,7 +411,10 @@ var requestIFrameInjection = function (chromeTab) {
 
 var handleMessage = function (request, sender, response) {
     console.log(request.method, request, sender);
-    if (request.method == "articleExtracted") {
+    if (request.method == "ready") {
+        optimistic_search(Tabs.get(sender.tab.id));
+
+    } else if (request.method == "articleExtracted") {
         if (request.text.length == 0) {
             chrome.pageAction.hide(sender.tab.id);
             return;
@@ -387,7 +432,6 @@ var handleMessage = function (request, sender, response) {
             };
             if (options.submit_urls) {
                 query_params['url'] = request.url;
-            } else {
             }
             tab.set({
                 'article_text': request.text,
@@ -402,26 +446,9 @@ var handleMessage = function (request, sender, response) {
             }).success(function(result){
                 with_best_search_result(request.text, result, function(best_match){
                     if (best_match && sufficient_coverage(best_match)) {
-                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
-                        chrome.pageAction.setTitle({tabId: sender.tab.id, title: "Churnalism Alert!"});
-                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
-
-                        var req = {
-                            'method': 'injectWarningRibbon',
-                            'src': options.search_server + Params['WARNING_RIBBON_SRC'],
-                            'loading_url': chrome.extension.getURL('/html/loadingwait.html'),
-                            'match': {
-                                'url': comparisonUrl(result.uuid,
-                                                     best_match.doctype,
-                                                     best_match.docid)
-                            }
-                        };
-                        chrome.tabs.sendRequest(sender.tab.id, req);
-
+                        requestRibbonInjection(sender.tab.id, result.uuid, best_match.doctype, best_match.docid);
                     } else {
-                        chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
-                        chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
-                        chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html?tabId=" + sender.tab.id});
+                        explain_no_match(sender.tab.id);
                     }
                 });
                 tab.set({'search_result': result});
@@ -436,12 +463,9 @@ var handleMessage = function (request, sender, response) {
             // to multiple article extractions and we don't want to make a network request for each.
             with_best_search_result(tab.get('article_text'), prior_result, function(best_match){
                 if (best_match && sufficient_coverage(best_match)) {
-                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/found.png"});
-                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: ""});
+                    requestRibbonInjection(sender.tab.id, result.uuid, best_match.doctype, best_match.docid);
                 } else {
-                    chrome.pageAction.setIcon({tabId: sender.tab.id, path: "/img/nonefound.png"});
-                    chrome.pageAction.setTitle({tabId: sender.tab.id, title: "This page is Churnalism-free"});
-                    chrome.pageAction.setPopup({tabId: sender.tab.id, popup: "/html/explainnomatch.html"});
+                    explain_no_match(sender.tab.id);
                 }
             });
         }
@@ -507,7 +531,7 @@ var handleMessage = function (request, sender, response) {
     } else if (request.method == "log") {
         console.log(request.args);
     }
-}
+};
 
 bootstrap();
 

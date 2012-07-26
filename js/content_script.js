@@ -50,46 +50,26 @@ var inject_comparison_iframe = function (url, loading_url) {
     }
 };
 
-var handleMessage = function (request, sender, response) {
-    console.log(request);
-    if (request.method == 'log') {
-        console.log(request.message);
+var inject_warning_ribbon = function (ribbon_url, match_url, loading_url) {
+    $("#churnalism-ribbon").remove();
 
-    } else if (request.method == 'injectIFrame') {
-        inject_comparison_iframe(request.url, request.loading_url);
+    var ribbon_frame = $('<iframe id="churnalism-ribbon" name="churnalism-ribbon"></iframe>');
+    ribbon_frame.prependTo('body');
+    ribbon_frame.attr('src', ribbon_url + '?domain=' + window.location.href);
 
-    } else if (request.method == 'injectWarningRibbon') {
-        $("#churnalism-ribbon").remove();
+    window.addEventListener('message', function(event){
+        if (event.data == 'dismiss_churnalism_ribbon') {
+            $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
+        } else if (event.data == 'show_churnalism_comparison') {
+            inject_comparison_iframe(match_url, loading_url);
+            $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
+        }
+    }, false);
 
-        var ribbon_frame = $('<iframe id="churnalism-ribbon" name="churnalism-ribbon"></iframe>');
-        ribbon_frame.prependTo('body');
-        ribbon_frame.attr('src', request.src + '?domain=' + window.location.href);
-
-        window.addEventListener('message', function(event){
-            if (event.data == 'dismiss_churnalism_ribbon') {
-                $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
-            } else if (event.data == 'show_churnalism_comparison') {
-                inject_comparison_iframe(request.match.url, request.loading_url);
-                $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
-            }
-        }, false);
-
-        ribbon_frame.slideDown(400);
-    } else {
-        console.log('content_script.js', 'handleMessage', request, sender, response);
-    }
-};
-chrome.extension.onRequest.addListener(handleMessage);
-
-var prevent_scroll = function (event) {
-    event.preventDefault();
-    event.stopPropagation();
-    return false;
+    ribbon_frame.slideDown(400);
 };
 
-jQuery(document).ready(function(){
-    console.log("Churnalism loaded.");
-
+var fix_iframe_opacity = function () {
     jQuery('iframe').each(function(idx, iframe){
         var src = jQuery(iframe).attr('src');
         // We assume most object/embed tags are flash.
@@ -108,7 +88,35 @@ jQuery(document).ready(function(){
             console.log('iframe found but it does not seem to contain any flash objects ' + src);
         }
     });
+};
 
+var handleMessage = function (request, sender, response) {
+    console.log(request);
+    if (request.method == 'log') {
+        console.log(request.message);
+
+    } else if (request.method == 'injectIFrame') {
+        inject_comparison_iframe(request.url, request.loading_url);
+
+    } else if (request.method == 'injectWarningRibbon') {
+        inject_warning_ribbon(request.src, request.match_url, request.loading_url);
+
+    } else if (request.method == 'extractArticle') {
+        extract_article();
+
+    } else {
+        console.log('content_script.js', 'handleMessage', request, sender, response);
+    }
+};
+chrome.extension.onRequest.addListener(handleMessage);
+
+var prevent_scroll = function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+};
+
+var extract_article = function () {
     ArticleExtractor(window);
     var article_document = new ExtractedDocument(document);
     var article = article_document.get_article_text();
@@ -122,5 +130,11 @@ jQuery(document).ready(function(){
     };
     chrome.extension.sendRequest(req);
     console.log("Article text: ", article);
+};
+
+jQuery(document).ready(function(){
+    console.log("Churnalism loaded.");
+    fix_iframe_opacity();
+    chrome.extension.sendRequest({'method': 'ready'});
 });
 
