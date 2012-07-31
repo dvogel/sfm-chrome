@@ -55,7 +55,7 @@ var inject_warning_ribbon = function (ribbon_url, match_url, loading_url) {
 
     var ribbon_frame = $('<iframe id="churnalism-ribbon" name="churnalism-ribbon"></iframe>');
     ribbon_frame.prependTo('body');
-    ribbon_frame.attr('src', ribbon_url + '?domain=' + window.location.href);
+    ribbon_frame.attr('src', ribbon_url);
 
     window.addEventListener('message', function(event){
         if (event.data == 'dismiss_churnalism_ribbon') {
@@ -99,7 +99,7 @@ var handleMessage = function (request, sender, response) {
         inject_comparison_iframe(request.url, request.loading_url);
 
     } else if (request.method == 'injectWarningRibbon') {
-        inject_warning_ribbon(request.src, request.match_url, request.loading_url);
+        inject_warning_ribbon(request.src, request.match.url, request.loading_url);
 
     } else if (request.method == 'extractArticle') {
         extract_article();

@@ -326,7 +326,7 @@ var optimistic_search = function (tab) {
         tab.set({'search_result': result});
         with_best_search_result(result.text, result, function(best_match){
             if (best_match && sufficient_coverage(best_match)) {
-                requestRibbonInjection(tab.get('id'), result.uuid, best_match.doctype, best_match.docid);
+                requestRibbonInjection(tab.get('id'), tab.get('url'), result.uuid, best_match.doctype, best_match.docid);
             } else {
                 explain_no_match(tab.get('id'));
             }
@@ -367,14 +367,17 @@ var comparisonUrl = function (uuid, doctype, docid) {
     return url;
 };
 
-var requestRibbonInjection = function (tabId, uuid, doctype, docid) {
+var requestRibbonInjection = function (tabId, page_url, uuid, doctype, docid) {
     chrome.pageAction.setIcon({tabId: tabId, path: "/img/found.png"});
     chrome.pageAction.setTitle({tabId: tabId, title: "Churnalism Alert!"});
     chrome.pageAction.setPopup({tabId: tabId, popup: ""});
     var options = restoreOptions();
+
+    var url_parts = parseUri(page_url);
+    var origin = url_parts.protocol + '://' + url_parts.host;
     var req = {
         'method': 'injectWarningRibbon',
-        'src': options.search_server + Params['WARNING_RIBBON_SRC'],
+        'src': options.search_server + Params['WARNING_RIBBON_SRC'] + '?domain=' + origin,
         'loading_url': chrome.extension.getURL('/html/loadingwait.html'),
         'match': {
             'url': comparisonUrl(uuid,
@@ -446,7 +449,7 @@ var handleMessage = function (request, sender, response) {
             }).success(function(result){
                 with_best_search_result(request.text, result, function(best_match){
                     if (best_match && sufficient_coverage(best_match)) {
-                        requestRibbonInjection(sender.tab.id, result.uuid, best_match.doctype, best_match.docid);
+                        requestRibbonInjection(sender.tab.id, tab.get('url'), result.uuid, best_match.doctype, best_match.docid);
                     } else {
                         explain_no_match(sender.tab.id);
                     }
@@ -463,7 +466,7 @@ var handleMessage = function (request, sender, response) {
             // to multiple article extractions and we don't want to make a network request for each.
             with_best_search_result(tab.get('article_text'), prior_result, function(best_match){
                 if (best_match && sufficient_coverage(best_match)) {
-                    requestRibbonInjection(sender.tab.id, result.uuid, best_match.doctype, best_match.docid);
+                    requestRibbonInjection(sender.tab.id, tab.get('url'), result.uuid, best_match.doctype, best_match.docid);
                 } else {
                     explain_no_match(sender.tab.id);
                 }
