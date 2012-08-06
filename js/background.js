@@ -323,7 +323,11 @@ var optimistic_search = function (tab) {
     var uuid = UUID.uuid5(UUID.NAMESPACE_URL, tab.get('url'));
     var search_url = options.search_server + '/api/search/' + uuid.toString() + '/';
     $.ajax({type: "GET", url: search_url}).success(function(result){
-        tab.set({'search_result': result});
+        tab.set({
+            'search_result': result,
+            'article_text': result.text,
+            'article_title': result.title
+        });
         with_best_search_result(result.text, result, function(best_match){
             if (best_match && sufficient_coverage(best_match)) {
                 requestRibbonInjection(tab.get('id'), tab.get('url'), result.uuid, best_match.doctype, best_match.docid);
