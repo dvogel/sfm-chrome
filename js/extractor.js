@@ -17,7 +17,7 @@ var textRenderer = function (node) {
             acceptNode: function(node){
                 if (node.nodeType == 3) {
                     return NodeFilter.FILTER_ACCEPT; 
-				} else if (/^(p|br|pre)$/i.test(node.nodeName)) {
+				} else if (/^(p|br|pre|h\d)$/i.test(node.nodeName)) {
 					return NodeFilter.FILTER_ACCEPT;
 				} else if (node.nodeName == "SCRIPT") {
 					return NodeFilter.FILTER_REJECT;
@@ -42,7 +42,7 @@ var textRenderer = function (node) {
             if (text.length > 0) {
 				rope.push(text);
 			}
-		} else if (/^(p|br|pre)$/i.test(walker.currentNode.nodeName)) {
+		} else if (/^(p|br|pre|h\d)$/i.test(walker.currentNode.nodeName)) {
 			rope.push(' \n');
         } else {
             console.log('ArticleExtractor ignoring node: ' + walker.currentNode.nodeType + ' (' + walker.currentNode.nodeName + ')');
@@ -61,7 +61,7 @@ ArticleExtractor = function (NS) {
 
     var MIN_LEN = 25;
 
-    var htmlElements = /^(a|abbr|address|area|article|aside|audio|b|base|bdi|bdo|blockquote|body|br|button|canvas|caption|cite|code|col|colgroup|command|datalist|dd|del|details|dfn|div|dl|dt|em|embed|fieldset|figcaption|figure|footer|form|h1, h2, h3, h4, h5, h6|head|header|hgroup|hr|html|i|iframe|img|input|ins|kbd|keygen|label|legend|li|link|map|mark|menu|meta|meter|nav|noscript|object|ol|optgroup|option|output|p|param|pre|progress|q|rp|rt|ruby|s|samp|script|section|select|small|source|span|strong|style|sub|summary|sup|table|tbody|td|textarea|tfoot|th|thead|time|title|tr|track|u|ul|var|video|wbr)$/i;
+    var htmlElements = /^(a|abbr|address|area|article|aside|audio|b|base|bdi|bdo|blockquote|body|br|button|canvas|caption|cite|code|col|colgroup|command|datalist|dd|del|details|dfn|div|dl|dt|em|embed|fieldset|figcaption|figure|footer|form|h1|h2|h3|h4|h5|h6|head|header|hgroup|hr|html|i|iframe|img|input|ins|kbd|keygen|label|legend|li|link|map|mark|menu|meta|meter|nav|noscript|object|ol|optgroup|option|output|p|param|pre|progress|q|rp|rt|ruby|s|samp|script|section|select|small|source|span|strong|style|sub|summary|sup|table|tbody|td|textarea|tfoot|th|thead|time|title|tr|track|u|ul|var|video|wbr)$/i;
     var unlikelyCandidates = /ie6nomore|combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter/i;
     var okMaybeItsACandidate = /and|article|body|content|story|column|main|shadow/i;
     var classWeightPositive = /article|body|content|entry|hentry|main|page|pagination|post|\btext\b|blog|story/i;
@@ -475,7 +475,7 @@ ArticleExtractor = function (NS) {
         };
 
         that.get_article_text = function () {
-            return textRenderer(article_elem);
+            return textRenderer(article_elem).replace(/[\t \xa0\u00a0]{2,}/g, ' ');
         };
 
         that.get_title = function () {
