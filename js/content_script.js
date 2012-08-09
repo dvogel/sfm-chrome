@@ -50,21 +50,8 @@ var inject_comparison_iframe = function (url, loading_url) {
     }
 };
 
-var wrap_body_children = function () {
-    var migrant_elements = $("body > *")
-    $('<div id="churnalism-body-wrapper" style="position: relative; padding: 0; margin: 0; border-width: 0;"></div>').appendTo("body");
-    migrant_elements.appendTo('#churnalism-body-wrapper');
-};
-
-var unwrap_body_children = function() {
-    $("#churnalism-body-wrapper > *").appendTo("body");
-    $("#churnalism-body-wrapper").remove();
-};
-
 var inject_warning_ribbon = function (ribbon_url, match_url, loading_url) {
     $("#churnalism-ribbon").remove();
-
-    wrap_body_children();
 
     var ribbon_frame = $('<iframe id="churnalism-ribbon" name="churnalism-ribbon"></iframe>');
     ribbon_frame.prependTo('body');
@@ -73,7 +60,6 @@ var inject_warning_ribbon = function (ribbon_url, match_url, loading_url) {
     window.addEventListener('message', function(event){
         if (event.data == 'dismiss_churnalism_ribbon') {
             $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
-            unwrap_body_children();
         } else if (event.data == 'show_churnalism_comparison') {
             inject_comparison_iframe(match_url, loading_url);
             $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
