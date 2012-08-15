@@ -67,6 +67,8 @@ var inject_warning_ribbon = function (ribbon_url, match_url, loading_url) {
         } else if (event.data == 'show_churnalism_comparison') {
             inject_comparison_iframe(match_url, loading_url);
             $("#churnalism-ribbon").slideUp('fast', function(){ $(this).remove(); });
+        } else if (event.data == 'show_churnalism_options') {
+            chrome.extension.sendRequest({'method': 'showOptionsPage'});
         }
     }, false);
 

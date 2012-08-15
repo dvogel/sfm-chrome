@@ -499,6 +499,11 @@ var handleMessage = function (request, sender, response) {
             chrome.tabs.create({'url': url});
         }
 
+    } else if (request.method == 'showOptionsPage') {
+        chrome.tabs.create({
+            url: chrome.extension.getURL("html/options.html")
+        });
+
     } else if (request.method == 'getTab') {
         response(Tabs.get(request.tabId));
 
