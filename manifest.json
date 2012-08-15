@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Churnalism",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "description": "Check news articles for press release influence.",
   "background": {
     "page": "html/background.html"
