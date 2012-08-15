@@ -31,10 +31,14 @@ var inject_comparison_iframe = function (url, loading_url) {
         $("#churnalism-overlay").scroll(prevent_scroll);
         $("#churnalism-overlay").bind('mousewheel', prevent_scroll);
 
-        var docwidth = jQuery(document).width();
-        var halfdelta = (docwidth - 1000) / 2;
-        $("#churnalism-overlay").css('width', '1000px');
-        $("#churnalism-overlay").css('left', halfdelta + 'px');
+        var resize_frame = function () {
+            var docwidth = jQuery(document).width();
+            var halfdelta = (docwidth - 1000) / 2;
+            $("#churnalism-overlay").css('width', '1000px');
+            $("#churnalism-overlay").css('left', halfdelta + 'px');
+        };
+        resize_frame();
+        $(window).resize(resize_frame);
 
         overlay.fadeIn();
         mask.fadeIn();
@@ -84,14 +88,11 @@ var fix_iframe_opacity = function () {
                 console.log('appending wmode=transparent for ' + src);
                 jQuery(iframe).attr('src', src);
             }
-        } else {
-            console.log('iframe found but it does not seem to contain any flash objects ' + src);
         }
     });
 };
 
 var handleMessage = function (request, sender, response) {
-    console.log(request);
     if (request.method == 'log') {
         console.log(request.message);
 
@@ -129,7 +130,6 @@ var extract_article = function () {
         'title': title
     };
     chrome.extension.sendRequest(req);
-    console.log("Article text: ", article);
 };
 
 jQuery(document).ready(function(){

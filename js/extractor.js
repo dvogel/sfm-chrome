@@ -283,7 +283,6 @@ ArticleExtractor = function (NS) {
                 }
             });
             if (best_candidate == null) {
-                console.log('doc', doc);
                 throw 'ArticleExtractor: No candidate found!';
             }
         };
