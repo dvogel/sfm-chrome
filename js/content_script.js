@@ -118,11 +118,18 @@ var prevent_scroll = function (event) {
 };
 
 var extract_article = function () {
-    ArticleExtractor(window);
-    var article_document = new ExtractedDocument(document);
-    var article = article_document.get_article_text();
-    article = standardize_quotes(article, "'", "'", '"', '"');
-    var title = article_document.get_title();
+    var article = '';
+    var title = '';
+    try {
+        ArticleExtractor(window);
+        var article_document = new ExtractedDocument(document);
+        article = article_document.get_article_text();
+        article = standardize_quotes(article, "'", "'", '"', '"');
+        title = article_document.get_title();
+    } catch (e) {
+        article = '';
+        title = '';
+    }
     var req = {
         'method': 'articleExtracted',
         'url': window.location.href,
