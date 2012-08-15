@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Churnalism",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "Check news articles for press release influence.",
   "background": {
     "page": "html/background.html"
@@ -25,5 +25,5 @@
     "http://*/*",
     "https://*/*"
   ],
-  "update_url": "http://churnalism.sunlightfoundation.com/static/chromeext/updates.xml"
+  "update_url": "https://s3.amazonaws.com/churnalism.sunlightfoundation.com/chromeext/updates.xml"
 }
