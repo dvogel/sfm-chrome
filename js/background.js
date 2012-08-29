@@ -137,6 +137,11 @@ var defaultOptions = {
     submit_urls: true
 };
 
+var track_event = function(category, event_name, value) {
+    var tracker = _gat._getTracker('UA-22821126-19');
+    var successful = tracker._trackEvent(category, event_name, null, value, true);
+};
+
 var bootstrap = function (callback) {
     var options = restoreOptions();
     
@@ -333,12 +338,15 @@ var optimistic_search = function (tab) {
         with_best_search_result(result.text, result, function(best_match){
             if (best_match && sufficient_coverage(best_match)) {
                 requestRibbonInjection(tab.get('id'), tab.get('url'), result.uuid, best_match.doctype, best_match.docid);
+                track_event('search', 'optimistic_hit');
             } else {
                 explain_no_match(tab.get('id'));
+                track_event('search', 'optimistic_miss');
             }
         });
     }).error(function(xhr, text_status, error){
         chrome.tabs.sendRequest(tab.get('id'), {'method': 'extractArticle'});
+        track_event('diagnostic', 'optimistic_error', xhr.status);
     });
 };
 
@@ -456,14 +464,17 @@ var handleMessage = function (request, sender, response) {
                 with_best_search_result(request.text, result, function(best_match){
                     if (best_match && sufficient_coverage(best_match)) {
                         requestRibbonInjection(sender.tab.id, tab.get('url'), result.uuid, best_match.doctype, best_match.docid);
+                        track_event('search', 'normal_hit');
                     } else {
                         explain_no_match(sender.tab.id);
+                        track_event('search', 'normal_miss');
                     }
                 });
                 tab.set({'search_result': result});
                 response(result);
             }).error(function(xhr, text_status, error_thrown){
                 chrome.pageAction.hide(tab.get('id'));
+                track_event('diagnostic', 'normal_error', xhr.status);
             });
 
         } else {
