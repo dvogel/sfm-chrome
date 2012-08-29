@@ -17,11 +17,13 @@ pushd . >/dev/null
 summline=`git show --oneline`
 sha1=${summline%% *}
 zipfile="churnalism-ext-${sha1}.zip"
-n=0
-while [ -e "../${zipfile}.${n}" ]; do
-    n=$(($n + 1))
-done
-mv -v "../${zipfile}" "../${zipfile}.${n}"
+if [ -e "../${zipfile}" ]; then
+    n=0
+    while [ -e "../${zipfile}.${n}" ]; do
+        n=$(($n + 1))
+    done
+    mv -v "../${zipfile}" "../${zipfile}.${n}"
+fi
 git archive --format zip --output "../${zipfile}" -9 master || die "Failed to create zip archive."
 cd ..
 zip -d "${zipfile}" .gitignore crxmake.sh package.sh
