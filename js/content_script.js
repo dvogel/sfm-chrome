@@ -123,12 +123,13 @@ var extract_article = function () {
     var article = '';
     var title = '';
     try {
-        ArticleExtractor(window);
+        ArticleExtractor(window, LogWrapper.NOTICE);
         var article_document = new ExtractedDocument(document);
         article = article_document.get_article_text();
         article = standardize_quotes(article, "'", "'", '"', '"');
         title = article_document.get_title();
     } catch (e) {
+        console.log(e);
         article = '';
         title = '';
     }

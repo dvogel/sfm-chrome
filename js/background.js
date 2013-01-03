@@ -366,6 +366,7 @@ var checkForValidUrl = function (tab) {
         executeScriptsSynchronously(tab.get('id'), [
             "/js/jquery-1.7.1.min.js",
             "/js/jquery-ui-1.8.20.custom.min.js",
+            "/js/logwrapper.js",
             "/js/extractor.js",
             "/js/content_script.js"
         ]);
