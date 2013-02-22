@@ -215,7 +215,7 @@ var compileWhitelist = function () {
     var host_matcher = function (s) {
         if (s[0] == '.') {
             return function (location) {
-                return (location.host.slice(-s.length) == s);
+                return ((location.host.slice(-s.length) == s) || (location.host.slice(-s.length+1) == s.slice(1)));
             };
         } else {
             return function (location) {
