@@ -82,7 +82,7 @@ var defaultOptions = {
         "www.nj.com/news/...",
         "www.mercurynews.com",
         "www.nypost.com",
-        "www.nydailynews.com",
+        ".nydailynews.com",
         "www.denverpost.com",
         "www.freep.com",
         "www.jsonline.com",
@@ -128,6 +128,7 @@ var defaultOptions = {
         ".cbsnews.com",
         "abcnews.go.com",
         ".msnbc.msn.com",
+        ".nbcnews.com",
         ".foxnews.com",
         ".huffingtonpost.com"
     ],
