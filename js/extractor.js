@@ -184,7 +184,7 @@ ArticleExtractor = function (NS, loglevel) {
         var fix_misused_divs = function () {
             var _fix_div = function (div) {
                 var p = doc.createElement('p');
-                p.innerHTML = div.innerHTML;
+                jQuery(div).children().appendTo(p);
                 var $p = jQuery(p);
                 var $div = jQuery(div);
                 $p.attr('id', $div.attr('id'));
