@@ -497,7 +497,14 @@ var handleMessage = function (request, sender, response) {
             var tabs = [];
             jQuery(windows).each(function(winIdx, win){
                 jQuery(win.tabs).each(function(tabIdx, tab) {
-                    tabs.push(tab);
+                    if (request.whitelisted == null) {
+                        tabs.push(tab);
+                    } else {
+                        var loc = parseUri(tab.url);
+                        if (request.whitelisted === onWhitelist({host: loc.host, pathname: loc.path})) {
+                            tabs.push(tab);
+                        }
+                    }
                 });
             });
             response(tabs);

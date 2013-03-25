@@ -43,7 +43,7 @@ $(function() {
             searchServer(options['search_server']);
             useGenericNewsPattern(options['use_generic_news_pattern']);
             includeLocalNews(options['include_local_news']);
-            chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
+            chrome.extension.sendRequest({method:"getAllBrowserTabs", whitelisted:false}, function(tabs){
                 displayTabUrls(tabs, options);
             });
         });
@@ -152,7 +152,7 @@ $(function() {
         }
 
         chrome.extension.sendRequest({method: "addToWhitelist", site: pattern}, function(options){
-            chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
+            chrome.extension.sendRequest({method:"getAllBrowserTabs", whitelisted:false}, function(tabs){
                 renderList(options);
                 displayTabUrls(tabs, options);
                 $("#newSite input").val("");
@@ -258,7 +258,7 @@ $(function() {
             chrome.extension.sendRequest({method: "removeFromWhitelist", site: site}, function(options){
                 renderList(options);
                 $(that).parent().parent().remove();
-                chrome.extension.sendRequest({method:"getAllBrowserTabs"}, function(tabs){
+                chrome.extension.sendRequest({method:"getAllBrowserTabs", whitelisted:false}, function(tabs){
                     displayTabUrls(tabs, options);
                 });
             });
