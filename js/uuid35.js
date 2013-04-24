@@ -5,8 +5,9 @@
      * This document was tremendously helpful: http://www.famkruithof.net/guid-uuid-namebased.html
      */
 
-    UUID = function (words) {
+    var UUID = function (words) {
         this._words = words;
+        return this;
     };
 
     UUID.NAMESPACE_DNS = [107, 167, 184, 16, 157, 173, 17, 209, 128, 180, 0, 192, 79, 212, 48, 200];
