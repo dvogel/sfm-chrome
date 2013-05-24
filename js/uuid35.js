@@ -5,7 +5,7 @@
      * This document was tremendously helpful: http://www.famkruithof.net/guid-uuid-namebased.html
      */
 
-    var UUID = function (words) {
+    UUID = function (words) {
         this._words = words;
         return this;
     };
